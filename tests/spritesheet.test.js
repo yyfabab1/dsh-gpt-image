@@ -395,3 +395,91 @@ test('★ 抽完帧默认**删掉源视频**、删掉未抠底的原始帧，只
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+test('★ 两段式抽帧：先用小图找周期，再只抽要的那几帧（不白写 80% 的帧）', async () => {
+  const ffmpeg = await findFfmpeg()
+  if (!ffmpeg) return
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'sheet-2pass-'))
+  const { execFile } = await import('node:child_process')
+  const { promisify } = await import('node:util')
+  const run = promisify(execFile)
+  try {
+    const video = path.join(dir, 'p.mp4')
+    await run(ffmpeg.path, [
+      '-y', '-hide_banner', '-loglevel', 'error',
+      '-f', 'lavfi', '-i', 'color=c=white:s=128x128:r=24:d=3',
+      '-f', 'lavfi', '-i', 'color=c=0xe0603a:s=24x40:r=24:d=3',
+      '-filter_complex', "[0][1]overlay=x='30+40*sin(2*PI*t)':y=44",
+      '-pix_fmt', 'yuv420p', video,
+    ], { timeout: 60000, windowsHide: true })
+
+    const outDir = path.join(dir, 'out')
+    const r = await videoToSpriteSheet({
+      video, outDir, count: 8, loop: 'auto', name: 'p', ffmpeg: ffmpeg.path, keepVideo: true, deleteVideo: false,
+    })
+    assert.equal(r.ok, true, r.error ?? r.stage)
+
+    // ① 走了两段式
+    assert.ok(r.loop?.two_pass, '应报告走了两段式')
+    assert.match(r.loop.two_pass, /粗筛/)
+    assert.match(r.loop.two_pass, /精抽/)
+
+    // ② 粗筛目录用完就删掉了
+    assert.equal(await stat(path.join(outDir, 'frames_probe')).then(() => true).catch(() => false), false,
+      'frames_probe 用完应删掉')
+
+    // ③ frames 目录里只有最终要的帧（不是粗筛的 40+ 张）
+    const files = await readdir(path.join(outDir, 'frames'))
+    const alpha = files.filter((f) => /\.alpha\.png$/.test(f))
+    assert.ok(alpha.length <= 8, `最终只该留 ≤8 张抠好的帧，实际 ${alpha.length}`)
+    assert.ok(alpha.length > 0, '要有抠好的帧')
+
+    // ④ 帧数不会超过周期（周期比要的帧数短时按周期封顶，不硬凑重复帧）
+    if (r.loop.cycleFrames < 8) {
+      assert.ok(r.sheet.count <= r.loop.cycleFrames,
+        `帧数不能超过周期：周期 ${r.loop.cycleFrames}，实际 ${r.sheet.count}`)
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('★ 缓存：同样的视频+参数第二次直接命中，改参数或 force 才重跑', async () => {
+  const ffmpeg = await findFfmpeg()
+  if (!ffmpeg) return
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'sheet-cache-'))
+  const { execFile } = await import('node:child_process')
+  const { promisify } = await import('node:util')
+  const run = promisify(execFile)
+  try {
+    const video = path.join(dir, 'c.mp4')
+    await run(ffmpeg.path, [
+      '-y', '-hide_banner', '-loglevel', 'error',
+      '-f', 'lavfi', '-i', 'color=c=white:s=128x128:r=24:d=3',
+      '-f', 'lavfi', '-i', 'color=c=0xe0603a:s=24x40:r=24:d=3',
+      '-filter_complex', "[0][1]overlay=x='30+40*sin(2*PI*t)':y=44",
+      '-pix_fmt', 'yuv420p', video,
+    ], { timeout: 60000, windowsHide: true })
+    const outDir = path.join(dir, 'out')
+    const base = { video, outDir, count: 8, loop: 'auto', name: 'c', ffmpeg: ffmpeg.path, deleteVideo: false }
+
+    const first = await videoToSpriteSheet(base)
+    assert.equal(first.ok, true, first.error ?? first.stage)
+    assert.notEqual(first.cached, true, '第一次不该是缓存命中')
+
+    const second = await videoToSpriteSheet(base)
+    assert.equal(second.ok, true)
+    assert.equal(second.cached, true, '同样的视频+参数第二次应命中缓存')
+    assert.match(second.note, /命中缓存/)
+
+    // 改参数 → 不命中
+    const changed = await videoToSpriteSheet({ ...base, count: 6 })
+    assert.notEqual(changed.cached, true, '参数变了就不该命中缓存')
+
+    // force → 不命中
+    const forced = await videoToSpriteSheet({ ...base, force: true })
+    assert.notEqual(forced.cached, true, 'force=true 必须重跑')
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})

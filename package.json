@@ -1,6 +1,6 @@
 {
   "name": "@dsh-external/dsh-gpt-image",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "description": "AI 生图/生视频全流水线插件（DeepSeek Harness）：文生图 · 图生图/局部重绘 · 异步视频（含导入本地图片）· 像素画净化与真像素判定 · 素材规格即代码 · 自检/装机/登记 · 批量与去重 · 花钱闸门与免费档独立记账 · 27 个工具 + 侧栏 4 页。零依赖。",
   "type": "module",
   "main": "./lib/index.js",
