@@ -594,7 +594,7 @@ dsh plugin --profile web add @dsh-external/dsh-gpt-image
 ### 自检
 
 ```cmd
-npm test                        :: 643 个测试应全过
+npm test                        :: 666 个测试应全过
 node scripts\ inventory.mjs      :: 27 工具 / 32 路由 / 4 侧栏页配对
 ```
 
@@ -1311,6 +1311,110 @@ rig(action="validate")
 
 ---
 
+---
+
+## 引擎适配层 · Engine Adapter（素材 → 引擎真的能读的配置）
+
+前面几层做到「图能进游戏」，这一层做到「**配置也能进游戏**」。
+
+### 这层为什么存在（从开源模组编辑器学来的）
+
+参考了几个成熟的游戏模组编辑器（铁锈战争生态：
+[RustedWarfareCodingTool](https://github.com/promissame/RustedWarfareCodingTool)、
+[RustAssistantRebuild](https://github.com/Cold-Mint/RustAssistantRebuild)、
+[RustedWarfare-ModEditor](https://github.com/CLRedfield/RustedWarfare-ModEditor)、
+[RustPad](https://github.com/Xer0c-Xon/RustPad-Specialized.Rusted.Warfare.Modding.Tool.)）——
+它们的设计高度一致，而且共同点是**都不是靠堆代码，而是靠一份数据化的「代码表」**：
+
+> RustedWarfareCodingTool 的 `data/code_table.json` 有 **538KB**，结构是
+> **段 → 分组 → 字段**，每个字段带：代码名 / 中文名 / 说明 / 示例 / 类型。
+> 另外还有 21 个枚举、69 个「取值词表」、174 个地图码。
+
+这份字典一次性支撑了四件事：
+
+| 用途 | 怎么用 |
+|---|---|
+| **生成** | AI 按字典填字段，不会瞎编字段名 |
+| **校验** | 类型/必填/范围/枚举/引用全部可判定，报错**带稳定错误码**（它们用 E001–E130） |
+| **文档** | 中文名 + 说明直接就是表单标签和悬浮提示，不用另写一份 |
+| **补全** | 输入时按字典补 |
+
+反过来说：**字典不数据化，这套东西就只能手写 if-else** —— 游戏加一个字段就要改代码。
+
+### 我们的实现
+
+```jsonc
+adapter(action="list")                    // 已装的字典
+
+// 从别人的代码表导入（不 vendor 别人的数据：体积/许可/版本漂移都不合适）
+adapter(action="import-schema", code_table="D:\\rw_code_table.json",
+        schema_id="rusted-warfare", label="铁锈战争 v1.15")
+
+adapter(action="schema", schema_id="rusted-warfare")                       // 概览
+adapter(action="schema", schema_id="rusted-warfare", section="core")       // 某段有哪些字段
+
+// 按字典生成配置（类型强制 + 枚举校验 + 越界夹取 + 自产自检）
+adapter(action="emit", schema_id="rusted-warfare", values={
+  core: { name: "ai_tank", displayText: "AI坦克", maxHp: 260, showInEditor: "是" }
+})
+
+// 诊断已有配置（稳定错误码）
+adapter(action="lint", schema_id="rusted-warfare", file="D:\\mod\\units\\tank.ini")
+
+// 素材引用体检（白占体积的 / 引用了但文件不存在的）
+adapter(action="health", schema_id="rusted-warfare", game_root="D:\\mod")
+```
+
+也可以命令行跑导入：
+
+```cmd
+node scripts/import-code-table.mjs D:\rw_code_table.json --id rusted-warfare --label "铁锈战争 v1.15"
+```
+
+实测导入真实代码表：**21 段 / 1305 字段 / 43 枚举 / 69 个取值词表 / 284 个内置素材**。
+
+### 错误码（稳定，加规则只往后加）
+
+| 码 | 级别 | 含义 |
+|---|---|---|
+| E001 / E002 | error | 缺必需段 / 缺必需字段 |
+| E003 | warn | 字典里没这个键（自定义键可忽略） |
+| E004 | error | 类型不对 |
+| E005 | error | 数值越界 |
+| E006 | error | 枚举值不存在 |
+| E007 | error | **中文冒号**（引擎可能不认） |
+| E008 | warn | 列表里用了中文逗号 |
+| E009 / E010 | error | 同段重复键 / 重复的段 |
+| E011 | error | 悬空引用（引用的目标不存在） |
+| E012 | error | 颜色格式不对 |
+| E013 | warn | 键放错段 |
+| E014 | error | 语法不对 |
+
+`adapter(action="codes")` 能列出全部。
+
+### 一条设计红线：**校验器的价值由误报率决定**
+
+那些模组编辑器都专门列了「**不误报清单**」，认得真实写法：
+`${...}`、`self.xx`、`max(0, sin(...))`、`price: 8000,蓝晶=2100`、`delay: 2.2s`、
+`mutator30_ifUnitWithTags`、`@copyFromSection`、`dont_load: true`、`*.template`。
+
+道理很直接：**一个动不动就报错的校验器会被用户直接关掉，那它等于不存在。**
+所以本模块的 `tolerant` 清单命中就放过，宁可少报一条也不制造假警报。
+
+另外 `health` 会把「代码可用内置图像」这类词表当**白名单** ——
+配置里写 `beam1.png` 是引擎自带的，不能报"文件缺失"（否则一屏假警报）。
+
+### 诚实边界
+
+- **没有 vendor 任何别人的数据**。字典要你自己用 `import-code-table.mjs` 从官方/社区代码表导入；
+  vendor 一份 500KB 的数据既不合规也会立刻过期。
+- **只做了 ini 文本格式**（那类游戏的主流格式）+ JSON。其它格式要加 emitter。
+- **`deploy` 刻意没做一键写游戏目录** —— 写错目录等于污染工程，所以工具只把文件写进
+  `<输出目录>/<项目>/adapter/`，进游戏目录那一步留给你确认。
+  （`deployFiles()` 函数本身有 dry-run + 自动备份，想接可以自己接。）
+
+---
+
 ## 工具 · Tools
 
 | 工具 | 作用 |
@@ -1335,6 +1439,7 @@ rig(action="validate")
 | `_dsh_external_dsh_gpt_image_prompts` | 提示词库 + **项目提示词包**（`pack-show` / `pack-save` / `pack-template` / `pack-validate` / `pack-list`）—— 统一画风 |
 | `_dsh_external_dsh_gpt_image_audio` | **生音频**：角色配音 `speak`（支持 `[语气]` 标签）/ 作曲演唱 `song` / 翻唱 `sing` / 换声 `rvc`·`seedvc` / `status` |
 | `_dsh_external_dsh_gpt_image_rig` | **拆件傀儡**：部件图 → 图集 + 骨骼 JSON（`generate` / `build` / `pivot` / `rename` / `export` / `preview` / `validate`）—— 运行时按骨骼拼合 |
+| `_dsh_external_dsh_gpt_image_adapter` | **引擎适配层**：字段字典驱动 —— `import-schema` / `schema` / `emit` 生成配置 / `lint` 稳定错误码诊断 / `health` 素材引用体检 |
 | `_dsh_external_dsh_gpt_image_config` | 配置 / 花费 / 校准 / 锁 / `set_upload`（素材上传方式） |
 
 示例（AI 自己就能这么调）：
@@ -1453,7 +1558,7 @@ dsh-gpt-image/
 │   ├── upload.js    ★ 本地文件 → 公网 URL（策略链：自建前缀 / 自配端点 / 免费图床）
 │   ├── multipart.js ★ 零依赖 multipart 解析（面板「导入图片」用）
 │   ├── store.js     配置档（Playground 配置互导）+ 出图历史
-│   ├── tools.js     29 个工具
+│   ├── tools.js     30 个工具
 │   ├── server.js    面板 /gpt-image（36 个路由）
 │   └── util.js      HTTP / 路径安全 / 同源栅栏
 ├── tests/           557 个用例（25 个文件，`npm test` 走 glob 全量）
