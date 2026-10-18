@@ -594,7 +594,7 @@ dsh plugin --profile web add @dsh-external/dsh-gpt-image
 ### 自检
 
 ```cmd
-npm test                        :: 614 个测试应全过
+npm test                        :: 619 个测试应全过
 node scripts\ inventory.mjs      :: 27 工具 / 32 路由 / 4 侧栏页配对
 ```
 
@@ -1116,6 +1116,20 @@ Intended use → 主体（你写的） → 角色锚点 → Art style → Compos
 
 ---
 
+## 像素化按钮（核对页）
+
+核对页每张素材卡片左下角有「**像素化**」按钮：一键把 AI 的"伪像素图"还原成真像素。
+
+- 默认**保持原尺寸**（整数块最近邻放回）—— 端到端看起来才是"真像素"
+- 另存 `*.pixel.png`，**绝不覆盖原图**（原图是花钱买来的）
+- 要逻辑分辨率（例如真 8×8）就传 `output: "logical"`
+- 路由：`POST /api/pixelize`
+
+> 为什么默认不是逻辑分辨率：auto 检测出来的可能是 8×8，直接给你一个 93 字节的小图，
+> 点按钮的人会以为处理坏了。放回原尺寸才是「整块等大、无抗锯齿」的可用外观。
+
+---
+
 ## 音效 · 程序化合成（SFX，不依赖任何模型）
 
 `audio(action="sfx")`：16 个预设，**纯 JS 合成 + WAV 编码，零依赖、离线、毫秒级**。
@@ -1352,7 +1366,7 @@ dsh-gpt-image/
 │   ├── multipart.js ★ 零依赖 multipart 解析（面板「导入图片」用）
 │   ├── store.js     配置档（Playground 配置互导）+ 出图历史
 │   ├── tools.js     28 个工具
-│   ├── server.js    面板 /gpt-image（34 个路由）
+│   ├── server.js    面板 /gpt-image（35 个路由）
 │   └── util.js      HTTP / 路径安全 / 同源栅栏
 ├── tests/           557 个用例（25 个文件，`npm test` 走 glob 全量）
 ├── scripts/probe.mjs            真机 1 张探针
