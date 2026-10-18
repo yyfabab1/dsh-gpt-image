@@ -112,12 +112,12 @@
       },
       "versions": [
         {
-          "version": "1.10.0",
-          "publishTimestamp": 1792332216,
+          "version": "1.11.0",
+          "publishTimestamp": 1792336136,
           "source": {
             "type": "git",
             "url": "https://github.com/yyfabab1/dsh-gpt-image",
-            "commit": "90ca3e50ad062635b1daab456525b3c1649839eb"
+            "commit": "c68e759e6fbc8f9f1eec12db31dc89afbedb48ea"
           },
           "engines": {
             "dsh": ">=0.2.0"
