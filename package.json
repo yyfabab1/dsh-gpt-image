@@ -37,14 +37,14 @@
     }
   },
   "license": "MIT",
-  "author": "yyfabab",
+  "author": "yyfabab1",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yyfabab/dsh-gpt-image.git"
+    "url": "git+https://github.com/yyfabab1/dsh-gpt-image.git"
   },
-  "homepage": "https://github.com/yyfabab/dsh-gpt-image#readme",
+  "homepage": "https://github.com/yyfabab1/dsh-gpt-image#readme",
   "bugs": {
-    "url": "https://github.com/yyfabab/dsh-gpt-image/issues"
+    "url": "https://github.com/yyfabab1/dsh-gpt-image/issues"
   },
   "icon": "icon.svg",
   "engines": {
