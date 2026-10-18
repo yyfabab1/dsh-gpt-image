@@ -639,6 +639,77 @@ config(action="purge_labeled", dry_run=false)            // 真删
 关掉时插件返回 `skipped: true` 而不是报错 —— 「跳过」和「失败」必须分开，
 否则每次生成都会挂一条假的"预览图失败"警告。
 
+## 动画变体 · Variants（同款换配色，不重跑管线）
+
+一个动画做好后，"红/蓝阵营 / 缴获版 / 受损版"是常见需求。逐变体重跑「锚点→视频→抽帧」的代价是
+**每变体几分钟 + 每变体细节都可能不一样**。变体继承只改颜色：
+
+```jsonc
+spritesheet(action="variant", sheet="soldier_walk_loop_sheet.png",
+            variants=[{name:"walk_blue", preset:"blue"},
+                      {name:"walk_red",  preset:"red"}])
+```
+
+预设 `red/blue/green/purple/yellow/captured/damaged/ghost`；也可手调 `hue`/`saturation`/
+`brightness`/`grayscale`/`tint`/`palette`。**只改颜色，alpha 与几何一个像素都不动**；
+帧数/格子/帧率/时序全部继承源表，JSON 里记下 `variant_of` 与 `recolor` 配方。
+
+> 限制：`hue` 是全局旋转，会连肤色/金属色一起带走。只换制服用 `palette` 精确指定颜色对。
+
+## 动画装机 · Install animations（按格子缩放）
+
+静态图按整图宽高缩放；动画必须**按格子**算倍率（5×2 的表按整图缩放会得到 185.6 像素的格子 → 切帧错位）。
+
+```jsonc
+install(action="anim-list", project="xxx")                       // 有哪些动画
+install(action="anim", project="xxx", root="D:\游戏",
+        cell_width=96, cell_height=176)                          // 默认 dry_run
+```
+
+宽高倍率不一致会**拒绝**（拉伸会变形）并给出建议尺寸。产出：缩放后的精灵表 +
+`<名字>.anim.json`（帧坐标按缩放后重算）+ 同名备份 `.bak-before-install`。
+
+## 产出目录收敛 · Output layout
+
+副产物太多分不清哪个给游戏用。现在四类：
+
+| 类别 | 去处 | 游戏引用？ |
+|---|---|---|
+| **source**（干净素材/精灵表） | 原地不动 | ✅ 只有这类该被引用 |
+| preview（`*_labeled.png`） | `_preview/` | ❌ |
+| derived（`.post`/`.pixel`/`_slices`/缩放件/`.alpha`） | `_derived/` | 可能 |
+| intermediate（`frames/`/`*.cache.json`/`*.bak`） | `_tmp/` | ❌ |
+
+```jsonc
+assets(action="layout",   project="xxx")   // 清点
+assets(action="organize", project="xxx")   // 演练，默认 dry_run
+```
+
+整理只动 preview + intermediate，**source 一个都不动**（被引用着，移动即断引用）；
+derived 默认不动（切片可能就是游戏在用的单张），要动得显式 `include_derived=true`。
+
+## 磁盘守卫 · Disk guard（不再让磁盘悄悄塞满）
+
+这东西是被一次**真实事故**逼出来的：预览图一直是原尺寸，攒了 535 张吃掉 928MB，
+加上抽帧中间产物，D 盘被塞到 **0 字节可用** —— 而当时插件写盘失败的报错是 `ENOSPC`，
+完全看不出"是磁盘满了"。
+
+现在写盘前先过一关：
+
+| 级别 | 剩余空间 | 行为 |
+|---|---|---|
+| `ok` | ≥ 5 GB | 直接放行 |
+| `low` | 1~5 GB | 先自动清理可再生文件（预览图/中间产物/缓存），再复查 |
+| `critical` | < 1 GB | 必须清理；清完还不够就**明确拒绝**，并说清需要多少、差多少 |
+
+```jsonc
+config(action="disk")                 // 看空间 + 清点各分类占用
+config(action="disk", dry_run=false)  // 一键清理可再生文件
+```
+
+**只删能重新生成的东西**：`*_labeled.png`（预览）、`frames_probe/`、`*_cache.json`、`_tmp/`。
+**源素材、精灵表、派生切片、配置一个都不碰** —— 后者可能正被游戏引用，删了等于断引用。
+
 ## 配置 · Configuration
 
 三种方式等价：

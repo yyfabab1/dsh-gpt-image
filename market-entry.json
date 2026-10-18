@@ -5,12 +5,15 @@
   "category": [
     "image-generation",
     "video-generation",
+    "audio-generation",
     "assets",
-    "tools"
+    "animation",
+    "tools",
+    "workflow"
   ],
   "description": {
-    "en": "AI image & video production pipeline for DeepSeek Harness: text-to-image, image edit with masks, async video generation (including importing local images via auto-upload), pixel-art purification with a measurable 'true pixel' verdict, spec-as-code asset validation/auto-fix, self-check + install + register, batching with fingerprint dedup, and a spend gate that keeps free and paid tiers accounted separately. 27 agent tools + 4 sidebar pages, zero dependencies.",
-    "zh": "AI 生图/生视频全流水线（DeepSeek Harness）：文生图、图生图/局部重绘、异步视频（可导入本地图片，自动换公网 URL）、像素画净化与「真像素」可判定验收、素材规格即代码（校验+自动修复）、自检/装机/登记、批量去重、花钱闸门（免费档独立记账）。27 个工具 + 侧栏 4 页，零依赖。"
+    "en": "AI asset production pipeline for DeepSeek Harness. From a one-line prompt to files your game actually loads: generate (image / video / audio) -> machine self-check -> scale to game spec -> install into the project -> register in the asset table -> verify the code really references it. Includes a coherent multi-frame animation pipeline (anchor image -> image-to-video -> frame extraction -> alpha keying -> shared-bbox spritesheet + JSON), colour variants that inherit animation data, grid-based animation install, engine schema adapter, and a disk guard. 31 agent tools + 5 sidebar pages, zero runtime dependencies, 729 tests.",
+    "zh": "DeepSeek Harness 的游戏素材生产流水线：从一句话描述到**游戏真的会加载的文件** —— 生成（图/视频/音频）→ 机械自检 → 按游戏规格缩放 → 装进项目 → 登记进素材表 → 核对代码真的引用了。含连贯多帧动画（锚点图 → 图生视频 → 抽帧 → 抠底 → 共同包围盒 → 精灵表+JSON）、继承动画数据的配色变体、按格子缩放的动画装机、引擎 schema 适配层、磁盘守卫。31 个工具 + 侧栏 5 页，零运行时依赖，729 个测试。"
   },
   "npm": "@dsh-external/dsh-gpt-image",
   "install": "dsh plugin --profile web add @dsh-external/dsh-gpt-image",

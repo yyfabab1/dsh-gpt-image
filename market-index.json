@@ -1,0 +1,129 @@
+{
+  "format": 1,
+  "title": {
+    "en": "yyfabab1 plugins",
+    "zh": "yyfabab1 插件源"
+  },
+  "description": {
+    "en": "Plugin index for DeepSeek Harness — game asset production pipelines.",
+    "zh": "DeepSeek Harness 的插件索引 —— 游戏素材生产流水线。"
+  },
+  "metadata": {
+    "categories": {
+      "image-generation": {
+        "title": {
+          "en": "Image generation",
+          "zh": "图像生成"
+        }
+      },
+      "video-generation": {
+        "title": {
+          "en": "Video generation",
+          "zh": "视频生成"
+        }
+      },
+      "audio-generation": {
+        "title": {
+          "en": "Audio generation",
+          "zh": "音频生成"
+        }
+      },
+      "assets": {
+        "title": {
+          "en": "Game assets",
+          "zh": "游戏素材"
+        }
+      },
+      "animation": {
+        "title": {
+          "en": "Animation",
+          "zh": "动画"
+        }
+      },
+      "tools": {
+        "title": {
+          "en": "Developer tools",
+          "zh": "开发工具"
+        }
+      },
+      "workflow": {
+        "title": {
+          "en": "Workflow automation",
+          "zh": "流程自动化"
+        }
+      }
+    },
+    "labels": {
+      "zero-dependency": {
+        "title": {
+          "en": "Zero dependencies",
+          "zh": "零依赖"
+        }
+      },
+      "local-first": {
+        "title": {
+          "en": "Local first",
+          "zh": "本地优先"
+        }
+      },
+      "pipeline": {
+        "title": {
+          "en": "Production pipeline",
+          "zh": "生产流水线"
+        }
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "@dsh-external/dsh-gpt-image",
+      "title": {
+        "en": "GPT Image — asset production pipeline",
+        "zh": "出图台 · 素材生产流水线"
+      },
+      "description": {
+        "en": "AI asset production pipeline for DeepSeek Harness. From a one-line prompt to files your game actually loads: generate (image / video / audio) -> machine self-check -> scale to game spec -> install into the project -> register in the asset table -> verify the code really references it. Includes a coherent multi-frame animation pipeline (anchor image -> image-to-video -> frame extraction -> alpha keying -> shared-bbox spritesheet + JSON), colour variants that inherit animation data, grid-based animation install, engine schema adapter, and a disk guard. 31 agent tools + 5 sidebar pages, zero runtime dependencies, 729 tests.",
+        "zh": "DeepSeek Harness 的游戏素材生产流水线：从一句话描述到**游戏真的会加载的文件** —— 生成（图/视频/音频）→ 机械自检 → 按游戏规格缩放 → 装进项目 → 登记进素材表 → 核对代码真的引用了。含连贯多帧动画（锚点图 → 图生视频 → 抽帧 → 抠底 → 共同包围盒 → 精灵表+JSON）、继承动画数据的配色变体、按格子缩放的动画装机、引擎 schema 适配层、磁盘守卫。31 个工具 + 侧栏 5 页，零运行时依赖，729 个测试。"
+      },
+      "icon": "https://raw.githubusercontent.com/yyfabab1/dsh-gpt-image/main/icon.svg",
+      "author": "yyfabab1",
+      "homepage": "https://github.com/yyfabab1/dsh-gpt-image",
+      "repository": {
+        "url": "https://github.com/yyfabab1/dsh-gpt-image"
+      },
+      "metadata": {
+        "category": "assets",
+        "keywords": [
+          "image",
+          "video",
+          "sprite",
+          "animation",
+          "spritesheet",
+          "game-assets",
+          "pixel-art",
+          "audio",
+          "pipeline",
+          "zero-dependency"
+        ],
+        "labels": [
+          "zero-dependency",
+          "pipeline"
+        ]
+      },
+      "versions": [
+        {
+          "version": "1.10.0",
+          "publishTimestamp": 1792332068,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/yyfabab1/dsh-gpt-image",
+            "commit": "ba4f8878558b5f3b1ab46ff65bca02add59f948c"
+          },
+          "engines": {
+            "dsh": ">=0.2.0"
+          }
+        }
+      ]
+    }
+  ]
+}

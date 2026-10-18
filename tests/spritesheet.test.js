@@ -483,3 +483,68 @@ test('★ 缓存：同样的视频+参数第二次直接命中，改参数或 fo
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+test('★ 相位偏移：phase 真的把起始角度平移了（八面图靠它拿到 8 个不同朝向）', async () => {
+  const ffmpeg = await findFfmpeg()
+  if (!ffmpeg) return
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'sheet-phase-'))
+  const { execFile } = await import('node:child_process')
+  const { promisify } = await import('node:util')
+  const run = promisify(execFile)
+  try {
+    // 偏心方块整体转 360°（5 秒）——模拟环绕镜头
+    const video = path.join(dir, 'orbit.mp4')
+    await run(ffmpeg.path, [
+      '-y', '-hide_banner', '-loglevel', 'error',
+      '-f', 'lavfi', '-i', 'color=c=white:s=160x160:r=24:d=5',
+      '-f', 'lavfi', '-i', 'color=c=0xc03020:s=40x18:r=24:d=5',
+      '-filter_complex', "[0][1]overlay=x=100:y=70,rotate='2*PI*t/5':fillcolor=white:ow=160:oh=160",
+      '-pix_fmt', 'yuv420p', video,
+    ], { timeout: 90000, windowsHide: true })
+
+    const fingerprintOf = async (file) => {
+      const keyed = alphaFromEdgeBackground(await readFile(file))
+      const png = decodePngRgba(keyed.buffer)
+      const size = 16
+      const cells = new Float64Array(size * size)
+      for (let y = 0; y < png.height; y++) {
+        const cy = Math.min(size - 1, Math.floor((y / png.height) * size))
+        for (let x = 0; x < png.width; x++) {
+          const cx = Math.min(size - 1, Math.floor((x / png.width) * size))
+          const i = (y * png.width + x) * 4
+          cells[cy * size + cx] += 0.299 * png.pixels[i] + 0.587 * png.pixels[i + 1] + 0.114 * png.pixels[i + 2]
+        }
+      }
+      return cells
+    }
+    const diff = (a, b) => {
+      let s = 0
+      for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i])
+      return s / a.length
+    }
+    const firstFrame = async (outDir) => {
+      const files = (await readdir(path.join(outDir, 'frames'))).filter((f) => f.endsWith('.alpha.png')).sort()
+      return fingerprintOf(path.join(outDir, 'frames', files[0]))
+    }
+
+    const base = { video, count: 8, loop: 'auto', columns: 8, name: 'o', ffmpeg: ffmpeg.path, deleteVideo: false }
+    const a = await videoToSpriteSheet({ ...base, outDir: path.join(dir, 'a') })
+    const b = await videoToSpriteSheet({ ...base, outDir: path.join(dir, 'b'), phase: 0.5 })
+    assert.equal(a.ok, true, a.error ?? a.stage)
+    assert.equal(b.ok, true, b.error ?? b.stage)
+
+    // ① 两种相位下帧数一致、都没有重复帧
+    assert.equal(a.sheet.count, 8)
+    assert.equal(b.sheet.count, 8)
+
+    // ② phase=0.5 的起始帧必须和 phase=0 明显不同（差半圈）
+    const fa = await firstFrame(path.join(dir, 'a'))
+    const fb = await firstFrame(path.join(dir, 'b'))
+    assert.ok(diff(fa, fb) > 5, `phase=0.5 的首帧应该和 phase=0 明显不同，实际差异只有 ${diff(fa, fb).toFixed(2)}`)
+
+    // ③ auto 循环应该识别出"转一圈"的周期（≈整个视频长度）
+    assert.ok(a.loop?.cycleFrames > 20, `应识别出接近全片的周期，实际 ${a.loop?.cycleFrames}`)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
