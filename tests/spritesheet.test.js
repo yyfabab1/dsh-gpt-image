@@ -15,7 +15,7 @@
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import {
@@ -333,6 +333,64 @@ test('端到端：抽帧的帧数/帧率换算正确（count 优先）', async (
     const byFps = await extractFrames({ ffmpeg: ffmpeg.path, video, outDir: path.join(dir, 'b'), fps: 10, durationSec: 2 })
     assert.equal(byFps.ok, true, byFps.error)
     assert.ok(byFps.count >= 18, `10fps × 2 秒 ≈ 20 帧，实际 ${byFps.count}`)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('★ 抽完帧默认**删掉源视频**、删掉未抠底的原始帧，只留可用的帧', async () => {
+  const ffmpeg = await findFfmpeg()
+  if (!ffmpeg) return
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'sheet-clean-'))
+  const { execFile } = await import('node:child_process')
+  const { promisify } = await import('node:util')
+  const run = promisify(execFile)
+  try {
+    const video = path.join(dir, 'v.mp4')
+    await run(ffmpeg.path, [
+      '-y', '-hide_banner', '-loglevel', 'error',
+      '-f', 'lavfi', '-i', 'color=c=white:s=96x96:r=10:d=1',
+      '-f', 'lavfi', '-i', 'color=c=0xe0603a:s=20x36:r=10:d=1',
+      '-filter_complex', "[0][1]overlay=x='10+40*t':y=30",
+      '-pix_fmt', 'yuv420p', video,
+    ], { timeout: 60000, windowsHide: true })
+    assert.ok(await stat(video).then((s) => s.isFile()), '视频应已存在')
+
+    const outDir = path.join(dir, 'out')
+    const r = await videoToSpriteSheet({ video, outDir, count: 5, name: 'c', ffmpeg: ffmpeg.path })
+    assert.equal(r.ok, true, r.error ?? r.stage)
+
+    // ① 源视频被删掉
+    assert.equal(await stat(video).then(() => true).catch(() => false), false,
+      '抽完帧后源视频应当被删掉（默认行为）')
+    assert.equal(r.cleaned.video, video, '结果里要报告删了哪个视频')
+
+    // ② 帧目录里只留 .alpha.png，不再有原始帧
+    const files = await readdir(path.join(outDir, 'frames'))
+    const raw = files.filter((f) => /^f_\d+\.png$/.test(f))
+    const keyed = files.filter((f) => /\.alpha\.png$/.test(f))
+    assert.ok(keyed.length > 0, '抠好的帧要留着')
+    assert.equal(raw.length, 0, `未抠底的原始帧应被删掉，实际还剩 ${raw.length} 张`)
+
+    // ③ 精灵表和 JSON 还在
+    assert.ok(await stat(r.sheet.file).then((s) => s.isFile()))
+    assert.ok(await stat(r.json).then((s) => s.isFile()))
+
+    // ④ keep_video=true 时不删
+    const video2 = path.join(dir, 'v2.mp4')
+    await run(ffmpeg.path, ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=white:s=64x64:r=10:d=1', '-pix_fmt', 'yuv420p', video2], { timeout: 60000, windowsHide: true })
+    // 纯色视频没有前景，会失败——换个有前景的
+    await run(ffmpeg.path, [
+      '-y', '-hide_banner', '-loglevel', 'error',
+      '-f', 'lavfi', '-i', 'color=c=white:s=96x96:r=10:d=1',
+      '-f', 'lavfi', '-i', 'color=c=0x3060e0:s=20x36:r=10:d=1',
+      '-filter_complex', "[0][1]overlay=x='10+40*t':y=30",
+      '-pix_fmt', 'yuv420p', video2,
+    ], { timeout: 60000, windowsHide: true })
+    const r2 = await videoToSpriteSheet({ video: video2, outDir: path.join(dir, 'out2'), count: 4, name: 'k', ffmpeg: ffmpeg.path, deleteVideo: false, keepRawFrames: true })
+    assert.equal(r2.ok, true, r2.error ?? r2.stage)
+    assert.equal(await stat(video2).then(() => true).catch(() => false), true,
+      'keep_video=true 时不能删源视频')
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
