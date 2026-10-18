@@ -79,9 +79,9 @@ test('侧栏图标按 ui-sidebar 的算法能列出来（id/order/label 都齐�
   exports.apply(ctx)
 
   const panelEntries = ctx.slots.entriesOfSlot('sidebar.panellist')
-  // 曾经是「正好 1 个」，但用户要求把余额/生视频/自动化也放进侧栏 —— 断言要跟着意图走：
+  // 曾经是「正好 1 个」，但用户要求把余额/生视频/自动化/生音频也放进侧栏 —— 断言要跟着意图走：
   // 这几个页面都要在，而且每个 id 都得有对应的 main 面板（见下面那条与 e2e 里的契约测试）。
-  assert.equal(panelEntries.length, 4, `侧栏应有 4 个面板（余额/生图/生视频/自动化），实际 ${panelEntries.length}`)
+  assert.equal(panelEntries.length, 5, `侧栏应有 5 个面板（余额/生图/生视频/自动化/生音频），实际 ${panelEntries.length}`)
 
   // 复刻 ui-sidebar：syncPanels() 的映射 + 排序
   const panels = panelEntries.map(({ options }) => ({
@@ -95,6 +95,7 @@ test('侧栏图标按 ui-sidebar 的算法能列出来（id/order/label 都齐�
     { id: 'gallery', order: 30, label: '生图' },
     { id: 'video', order: 31, label: '生视频' },
     { id: 'auto', order: 32, label: '自动化' },
+    { id: 'audio', order: 33, label: '生音频' },
   ])
   for (const entry of panelEntries) {
     assert.equal(typeof entry.component, 'function', `侧栏「${entry.options.id}」的图标必须是组件`)

@@ -594,7 +594,7 @@ dsh plugin --profile web add @dsh-external/dsh-gpt-image
 ### 自检
 
 ```cmd
-npm test                        :: 557 个测试应全过
+npm test                        :: 614 个测试应全过
 node scripts\ inventory.mjs      :: 27 工具 / 32 路由 / 4 侧栏页配对
 ```
 
@@ -1116,6 +1116,64 @@ Intended use → 主体（你写的） → 角色锚点 → Art style → Compos
 
 ---
 
+## 音效 · 程序化合成（SFX，不依赖任何模型）
+
+`audio(action="sfx")`：16 个预设，**纯 JS 合成 + WAV 编码，零依赖、离线、毫秒级**。
+
+```jsonc
+audio(action="sfx-list")                                    // 看全部预设
+audio(action="sfx", presets=["coin","laser","explosion"], name="pickup", seed=7)
+audio(action="sfx", preset="magic", pitch=-5, brightness=1.4, seed=42, sample_rate=22050)
+```
+
+预设：`coin` 金币 · `laser` 激光 · `impact` 撞击 · `explosion` 爆炸 · `whoosh` 挥砍/风 ·
+`powerup` 强化 · `hit` 受击 · `jump` 跳跃 · `blip` 提示音 · `alarm` 警报 · `click` 点击 ·
+`footstep` 脚步 · `glass` 玻璃碎 · `electric` 电流 · `magic` 魔法 · `noise` 噪声
+
+参数：`duration`（0.05~8s）· `pitch`（±24 半音）· `brightness`（0.1~2）· `seed` · `sample_rate`（8000~48000）· `volume` · `channels`
+
+### 为什么自己做而不是接模型
+
+1. **你机器上没有音效生成模型** —— GPT-SoVITS 是 TTS/换声，YuE2/YingMusic 是音乐，
+   VoiceStudio 的 job 类型里没有 sfx。
+2. 更重要的是：**像素游戏的经典音效本来就是合成的**。8/16 位时代没有采样库，
+   金币声是方波、激光是下滑锯齿波、爆炸是滤波噪声。用模型去"生成"反而容易糊。
+3. **确定性**：同 seed 永远得到逐字节相同的文件 —— 可以进版本库、可复现、可回归测试。
+   模型生成做不到这一点。
+
+实测：16 个预设全部生成成功，单个耗时 **1–8ms**，共 555 KB。
+测试钉住了「不是静音」「不削顶」「结尾淡出」「WAV 头合法」「同 seed 同文件」这五件事。
+
+---
+
+## Best-of-N 择优（关键素材值得多花几倍钱）
+
+`generate(..., best_of=3)`：一次出 N 张，自动打分留最高分，落选的**改名**加 `_落选_` 前缀（不删，可后悔）。
+
+```jsonc
+generate(prompt="主角立绘，站姿，正面", name="hero_portrait", best_of=3, best_of_recycle=false)
+```
+
+**什么时候值得用**：关键素材（主角立绘、封面、商店主视觉）—— 一张画废了返工成本很高。
+**什么时候别用**：批量小图标 —— N 倍成本换不来等价收益。
+
+打分全是**确定性规则**（复用 `review.js`，不额外调模型）：
+
+| 问题 | 扣分 |
+|---|---|
+| 几乎单色 / 全黑 / 全白 | -45（且判致命） |
+| 对比度极低 | -35 |
+| 几乎没有边缘（画面是空的） | -30 |
+| 要求透明底却没有透明像素 | -20 / -15 |
+| 尺寸不符 | -12 |
+
+同分时**保留先生成的那张**（不随机，可复现）。全是废图时如实说"建议重画"并保留第一张占位。
+
+> 它叫"择优"不叫"选美"：只淘汰明显废图，把"能用/不能用"筛掉，剩下的交给人看。
+> 不接 AI 审美打分 —— 那要额外花钱、又慢、还不可复现。
+
+---
+
 ## 生音频 · 角色配音 / 唱歌 / 作曲（桥接 VoiceStudio）
 
 你机器上已经有一套跑通的语音流水线（GPT-SoVITS 训练 + RVC + Seed-VC + YuE2 作曲），
@@ -1283,7 +1341,7 @@ npm test     # 557 个用例：协议模板、占位符、结果提取、异步�
 dsh-gpt-image/
 ├── lib/
 │   ├── index.js     插件入口（注册工具 + 面板）
-│   ├── client.js    ★ 客户端半边：对话头部「生图/生视频/余额」+ 侧栏 4 页
+│   ├── client.js    ★ 客户端半边：对话头部「生图/生视频/余额」+ 侧栏 5 页（含生音频）
 │   ├── protocol.js  ★ 协议引擎：provider 模板 / 占位符 / 结果路径表达式
 │   ├── api.js       ★ 请求驱动：images · responses · multipart 改图 · 异步轮询 · /v1 自愈
 │   ├── run.js       编排：读参考图 → 出图 → 落盘 → 写清单 → 记历史
@@ -1294,7 +1352,7 @@ dsh-gpt-image/
 │   ├── multipart.js ★ 零依赖 multipart 解析（面板「导入图片」用）
 │   ├── store.js     配置档（Playground 配置互导）+ 出图历史
 │   ├── tools.js     28 个工具
-│   ├── server.js    面板 /gpt-image（33 个路由）
+│   ├── server.js    面板 /gpt-image（34 个路由）
 │   └── util.js      HTTP / 路径安全 / 同源栅栏
 ├── tests/           557 个用例（25 个文件，`npm test` 走 glob 全量）
 ├── scripts/probe.mjs            真机 1 张探针
