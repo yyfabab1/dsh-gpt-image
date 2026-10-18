@@ -560,6 +560,18 @@ config(action="set_locks", patch={"spendDisabled":true})→ 急停，别想花�
 
 ## 安装 · Installation
 
+### 从 DSH 商店装（推荐）
+
+设置 → 插件 → 发现（Discover）→ 添加插件源，填：
+
+```
+https://gcore.jsdelivr.net/gh/yyfabab1/dsh-gpt-image@main/market-index.json
+```
+
+索引格式是 DSH 商店的 format 1；生成/校验方式见 [docs/商店发布.md](docs/商店发布.md)。
+
+
+
 ### Windows 一键安装
 
 ```cmd
