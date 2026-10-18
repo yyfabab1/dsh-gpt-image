@@ -615,6 +615,30 @@ node scripts\ inventory.mjs      :: 27 工具 / 32 路由 / 4 侧栏页配对
 
 ---
 
+## 预览图开关（*_labeled.png）
+
+每张生成的素材都会配一张「画面里印着素材名」的预览图 —— 素材一多就知道哪张是哪张。
+**但预览图默认一直是原尺寸**，一张 1024×1024 素材的预览图也是完整 1024×1024 PNG（约 1MB）。
+实测攒了 **535 张、吃掉 928MB**，直接把磁盘塞满。
+
+现在有三档（`config(action="set_label")`）：
+
+| mode | 效果 | 体积 |
+|---|---|---|
+| `small`（**默认**） | 缩到最长边 `maxSide` 像素（默认 384），名字照样看清 | 约原尺寸的 **2~3%** |
+| `on` | 原尺寸（旧行为） | 100% |
+| `off` | 完全不生成（明确关掉，不是"悄悄没做"） | 0 |
+
+```jsonc
+config(action="set_label", mode="small", max_side=384)   // 默认
+config(action="set_label", mode="off")                   // 完全不要预览图
+config(action="purge_labeled", dry_run=true)             // 先看有多少历史预览图
+config(action="purge_labeled", dry_run=false)            // 真删
+```
+
+关掉时插件返回 `skipped: true` 而不是报错 —— 「跳过」和「失败」必须分开，
+否则每次生成都会挂一条假的"预览图失败"警告。
+
 ## 配置 · Configuration
 
 三种方式等价：

@@ -6,7 +6,11 @@ param(
   [Parameter(Mandatory = $true)][string]$Out,
   [Parameter(Mandatory = $true)][string]$Text,
   [string]$Sub = '',
-  [int]$MinSide = 200
+  [int]$MinSide = 200,
+  # MaxSide: cap the LONGEST side of the labeled preview. 0 = no cap (old behaviour).
+  # Why the cap exists: a 1024x1024 asset made a full-size 1024x1024 preview (~1.7MB each).
+  # 535 of them ate 928MB. Capping at 384px keeps the name readable at ~2-3% of the size.
+  [int]$MaxSide = 0
 )
 
 $resultFile = "$Out.result.txt"
@@ -24,6 +28,16 @@ try {
     if ($MinSide -gt 0 -and $short -lt $MinSide) { $scale = [double]$MinSide / [double]$short }
     $w = [int][Math]::Max($sw, [Math]::Round($sw * $scale))
     $h = [int][Math]::Max($sh, [Math]::Round($sh * $scale))
+    # Downscale: if the longest side exceeds MaxSide, scale down proportionally.
+    # The preview only exists to identify an asset, so full resolution is wasted space.
+    if ($MaxSide -gt 0) {
+      $long = [Math]::Max($w, $h)
+      if ($long -gt $MaxSide) {
+        $shrink = [double]$MaxSide / [double]$long
+        $w = [int][Math]::Max(1, [Math]::Round($w * $shrink))
+        $h = [int][Math]::Max(1, [Math]::Round($h * $shrink))
+      }
+    }
 
     $bmp = New-Object System.Drawing.Bitmap($w, $h, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
