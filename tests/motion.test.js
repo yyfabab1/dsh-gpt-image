@@ -269,12 +269,18 @@ test('动作库完整性：13 个动作、id 唯一、每个都有中文名/别�
   assert.equal(getMotion('不存在'), null)
 })
 
-test('动作库只用人形模板里真有的骨骼名（拼错一个就会静默不动）', () => {
-  const known = new Set(humanoidBoneNames())
+test('动作库只用在**对应模板**里真有的骨骼名（拼错一个就会静默不动）', async () => {
+  /* 动作分两组：侧/前视（人形）、正俯视（俯视士兵）。俯视模板没有 thigh/shin/torso，
+   * 所以不能拿人形骨骼表去校验俯视动作 —— 按 view 分别对表才是有意义的断言。 */
+  const { TOPDOWN_SLOTS } = await import('../lib/rig.js')
+  const side = new Set(humanoidBoneNames())
+  const top = new Set(TOPDOWN_SLOTS.map((s) => s.name))
   for (const motion of MOTIONS) {
     if (motion.sequence) continue
+    const known = motion.view === 'top' ? top : side
     for (const bone of Object.keys(motion.channels)) {
-      assert.ok(known.has(bone), `${motion.id} 用了模板里没有的骨骼：${bone}`)
+      assert.ok(known.has(bone),
+        `${motion.id}（view=${motion.view ?? 'side'}）用了模板里没有的骨骼：${bone}`)
     }
   }
 })

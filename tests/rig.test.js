@@ -436,8 +436,8 @@ test('拆件提示词：两种版面都把"可切分"的关键约束写进去了
 
 test('模板：人形 16 件，父子关系都指向存在的槽位', () => {
   const list = listTemplates()
-  assert.equal(list.length, 1)
-  assert.equal(list[0].id, 'humanoid')
+  assert.ok(list.length >= 2, `现在有侧视人形和正俯视两套模板，实际 ${list.length}`)
+  assert.ok(list.some((t) => t.id === 'humanoid'))
   assert.equal(HUMANOID_SLOTS.length, 16)
   const names = new Set(HUMANOID_SLOTS.map((s) => s.name))
   for (const slot of HUMANOID_SLOTS) {
