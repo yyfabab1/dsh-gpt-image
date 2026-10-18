@@ -1,0 +1,75 @@
+{
+  "customProviders": [
+    {
+      "id": "agnes",
+      "name": "Agnes AI（agnes-image-2.5-flash）",
+      "submit": {
+        "path": "images/generations",
+        "method": "POST",
+        "contentType": "json",
+        "body": {
+          "model": "$profile.model",
+          "prompt": "$prompt",
+          "size": "$params.size",
+          "ratio": "$params.ratio",
+          "n": "$params.n",
+          "extra_body": {
+            "response_format": "url"
+          }
+        }
+      },
+      "editSubmit": {
+        "path": "images/generations",
+        "method": "POST",
+        "contentType": "json",
+        "body": {
+          "model": "$profile.model",
+          "prompt": "$prompt",
+          "size": "$params.size",
+          "ratio": "$params.ratio",
+          "extra_body": {
+            "image": "$inputImages.dataUrls",
+            "response_format": "url"
+          }
+        }
+      },
+      "result": {
+        "imageUrlPaths": ["data.*.url"],
+        "b64JsonPaths": ["data.*.b64_json"]
+      },
+      "supports": {
+        "text2image": true,
+        "image2image": true,
+        "mask": false,
+        "async": false,
+        "responses": false
+      }
+    }
+  ],
+  "profiles": [
+    {
+      "id": "agnes-2.5-flash",
+      "name": "Agnes Image 2.5 Flash（免费档）",
+      "provider": "agnes",
+      "baseUrl": "https://apihub.agnes-ai.com/v1",
+      "apiKey": "",
+      "model": "agnes-image-2.5-flash",
+      "apiMode": "images",
+      "pricePerImage": 0,
+      "priceNote": "官方文档：所有分辨率档位与参考图当前免费；恢复计费时改回实际单价",
+      "isDefault": false
+    },
+    {
+      "id": "agnes-video-2.5-flash",
+      "name": "Agnes Video 2.5 Flash（免费档）",
+      "provider": "agnes-video",
+      "baseUrl": "https://apihub.agnes-ai.com/v1",
+      "apiKey": "",
+      "model": "agnes-video-2.5-flash",
+      "apiMode": "images",
+      "pricePerImage": 0,
+      "priceNote": "视频按秒计价：刊例 $0.025/秒，当前免费。恢复计费时改成 0.025（或按当前汇率）。",
+      "isDefault": false
+    }
+  ]
+}

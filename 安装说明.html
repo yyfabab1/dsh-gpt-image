@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dsh-gpt-image 安装说明 · 警告 · API 申请入口</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#161b22; --panel2:#1c2330; --line:#2a3442;
+    --fg:#e6edf3; --muted:#9aa7b4; --accent:#4a9eff; --warn:#ffb020; --bad:#ff5c5c; --ok:#3fb950;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    padding:28px 20px 80px}
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px}
+  h2{font-size:20px;margin:38px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  h3{font-size:16px;margin:22px 0 8px}
+  p{margin:9px 0}
+  code,kbd{background:#0b0e12;border:1px solid var(--line);border-radius:5px;
+    padding:1px 6px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  pre{background:#0b0e12;border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.6}
+  a{color:var(--accent)}
+  .sub{color:var(--muted);font-size:13.5px}
+
+  .warn{border:2px solid var(--bad);background:rgba(255,92,92,.09);border-radius:12px;
+    padding:18px 20px;margin:22px 0 8px}
+  .warn h2{border:0;margin:0 0 10px;font-size:19px;color:var(--bad);padding:0}
+  .warn ol{margin:8px 0 0;padding-left:22px}
+  .warn li{margin:7px 0}
+  .warn .tag{display:inline-block;background:var(--bad);color:#fff;border-radius:6px;
+    padding:1px 8px;font-size:12px;font-weight:700;margin-right:8px;vertical-align:2px}
+
+  .note{border-left:4px solid var(--warn);background:rgba(255,176,32,.07);
+    border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0}
+  .okbox{border-left:4px solid var(--ok);background:rgba(63,185,80,.07);
+    border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0}
+
+  .steps{counter-reset:s;list-style:none;padding:0;margin:0}
+  .steps li{counter-increment:s;position:relative;padding-left:52px;margin:18px 0}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:-2px;width:34px;height:34px;
+    border-radius:50%;background:var(--accent);color:#04121f;font-weight:800;
+    display:flex;align-items:center;justify-content:center}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin:16px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    display:flex;flex-direction:column}
+  .card .name{font-weight:700;font-size:16px;margin-bottom:2px}
+  .card .role{color:var(--muted);font-size:12.5px;margin-bottom:12px}
+  .card .kv{font-size:12.5px;color:var(--muted);margin:2px 0}
+  .card .kv b{color:var(--fg);font-weight:600}
+  .btn{display:inline-block;margin-top:auto;background:var(--accent);color:#04121f;font-weight:700;
+    text-decoration:none;border-radius:9px;padding:10px 14px;text-align:center;margin-top:14px}
+  .btn:hover{filter:brightness(1.12)}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+  .btn.small{display:inline-block;padding:6px 11px;font-size:13px;margin:6px 8px 0 0}
+
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:700}
+  tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+  .pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700}
+  .pill.ok{background:rgba(63,185,80,.18);color:var(--ok)}
+  .pill.bad{background:rgba(255,92,92,.18);color:var(--bad)}
+  .pill.warn{background:rgba(255,176,32,.18);color:var(--warn)}
+  .footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>dsh-gpt-image v1.0.1</h1>
+  <div class="sub">AI 生图 / 生视频 / 像素画净化 · DeepSeek Harness 插件 · 27 个工具 + 侧栏 4 页 · 零依赖</div>
+
+  <!-- ================= 警告 ================= -->
+  <div class="warn">
+    <h2><span class="tag">请先读</span>换一台电脑可能装不上 / 跑不起来</h2>
+    <p style="margin-top:4px">
+      这个包<strong>只在作者本人的一台电脑上验证过</strong>（Windows + Node.js 22）。
+      作者<strong>不确定</strong>它在别的电脑、别的 DSH 版本上能不能正常工作。
+      下面这些是真实存在的风险，装之前请先看一遍：
+    </p>
+    <ol>
+      <li><b>只在 Windows 上测试过。</b>一键安装脚本用了 <code>mklink /J</code>、<code>fsutil</code>、<code>netstat</code>、<code>taskkill</code>，
+        这些是 Windows 自带命令。macOS / Linux 用不了，得手动装。</li>
+      <li><b>只在 Node.js 22 上测试过。</b>代码要求 Node 20+，但 20 和 21 没实测。</li>
+      <li><b>一键安装假设了 DSH 的目录结构。</b>它去找
+        <code>~/.dsh/profiles/&lt;名字&gt;/node_modules/@dsh-external/</code>。
+        如果你的 DSH 是别的装法（全局 npm、多个 profile、改过 DSH_HOME），
+        脚本可能找不到位置或装错地方 —— 这种情况下会走「复制」兜底，或者直接报错让你手动处理。</li>
+      <li><b>批量打标签 / 缩放 / 截图用了 PowerShell 脚本</b>（<code>label.ps1</code>、<code>resize.ps1</code>、<code>grab.ps1</code>），
+        需要 Windows PowerShell。某些企业安全策略会禁用 <code>Add-Type</code> / 脚本执行，
+        那这几个功能会失效（其余功能不受影响）。</li>
+      <li><b>侧栏图标依赖 DSH 客户端</b>的 <code>window.__ModuleLoader__</code> 机制。
+        DSH 版本不同，界面可能不出现（工具调用仍然可用）。</li>
+      <li><b>API 额度与限流是账号相关的。</b>作者这边 Agnes 图片免费、视频队列常满；
+        你的账号状态、网络环境可能完全不同（例如 401 / 429 / 503）。</li>
+      <li><b>「导入图片生成视频」依赖第三方免费图床。</b>作者实测只有
+        <code>uguu.se</code> 可用，其他几家在作者网络下都不通。你那边可能一家都不通 ——
+        这时需要自己配 <code>publicBaseUrl</code> 或 <code>uploadEndpoint</code>。</li>
+      <li><b>素材/配置不会自动迁移。</b>插件的数据目录是 <code>~/.dsh/gpt-image/</code>，
+        安装脚本会自动创建，<b>不会</b>覆盖你已有的配置；但也不会把你原有的 Key 带过来。</li>
+    </ol>
+    <p style="margin-bottom:0">
+      <b>结论</b>：当作「可以试试」的东西，而不是「装上一定能用」。
+      装完如果侧栏没出现图标 / 工具报错，先看下面的
+      <a href="#troubleshoot">排错</a>，再看包里的 <code>README.md</code>（有大量实测记录）。
+    </p>
+  </div>
+
+  <!-- ================= 一键安装 ================= -->
+  <h2>一键安装</h2>
+  <ol class="steps">
+    <li>
+      <b>解压这个 zip</b>（别在压缩包里直接双击运行，要先解压到硬盘上，比如 <code>D:\dsh-gpt-image</code>）。
+    </li>
+    <li>
+      <b>先做一次环境检查</b>（不改任何东西、不重启）：
+      <pre>一键安装.bat check</pre>
+      或者右键 <code>一键安装.bat</code> → 以管理员身份运行也行（其实不需要管理员权限）。
+      检查项：操作系统 / Node 版本 / DSH 目录 / 插件自检（工具数、侧栏配对）。
+      <br><span class="sub">全部 [OK] 再往下走。</span>
+    </li>
+    <li>
+      <b>正式安装</b>：双击 <code>一键安装.bat</code>（不带参数）。
+      它会：建目录链接 → 自检 → 重启 DSH。
+      <div class="note">
+        <b>它会重启 DSH</b> —— 当前网页会断开（会话不会丢）。重启前有 5 秒倒计时，按 Ctrl+C 可以取消。
+        如果你不想让它重启，可以先设环境变量 <code>AUTO_NORESTART=1</code>，再单独双击
+        <code>重启DSH并加载生图插件.bat</code>。
+      </div>
+    </li>
+    <li>
+      <b>刷新浏览器</b>：打开 <a href="http://127.0.0.1:3080" target="_blank" rel="noreferrer">http://127.0.0.1:3080</a>
+      并按 <kbd>Ctrl</kbd>+<kbd>F5</kbd>。
+      <div class="okbox">
+        <b>装好的标志</b>：左侧栏出现 <b>余额 / 生图 / 生视频 / 自动化</b> 四个图标。
+        没有？看下面的 <a href="#troubleshoot">排错</a>。
+      </div>
+    </li>
+    <li>
+      <b>配 API Key</b> —— 见下方向下滚，每个服务商都有「去申请」按钮，点了直接跳官网。
+    </li>
+  </ol>
+
+  <h3>不想用一键脚本？手动装（三步）</h3>
+  <pre>REM 1) 把插件放到 DSH 的 node_modules 里（目录链接，改代码即时生效）
+mklink /J "%USERPROFILE%\.dsh\profiles\web\node_modules\@dsh-external\dsh-gpt-image" "D:\你的路径\dsh-gpt-image"
+
+REM 2) 自检
+cd /d D:\你的路径\dsh-gpt-image
+npm test
+node scripts\inventory.mjs
+
+REM 3) 重启 DSH（双击 重启DSH并加载生图插件.bat），然后浏览器 Ctrl+F5</pre>
+
+  <!-- ================= API 申请 ================= -->
+  <h2 id="api">API Key 申请入口（点了直接跳官网）</h2>
+  <p class="sub">
+    插件本身<b>不含任何 Key</b>。下面每个按钮都会打开新标签页，直达那家的注册 / 申请页面。
+    Key 只需要存在你自己的机器上（<code>~/.dsh/gpt-image/profiles.json</code>），不会外传。
+  </p>
+
+  <h3>① 作者自己用的那家（推荐先试这个，图片和视频都免费）</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="name">Agnes AI · 注册 / 控制台</div>
+      <div class="role">作者实际在用的服务商。注册后进控制台申请 API Key。</div>
+      <div class="kv">Base URL：<b>https://apihub.agnes-ai.com/v1</b></div>
+      <div class="kv">图片模型：<b>agnes-image-2.5-flash</b></div>
+      <div class="kv">视频模型：<b>agnes-video-2.5-flash</b></div>
+      <div class="kv">价格：<b>图片当前免费 · 视频刊例 $0.025/秒、当前 $0</b></div>
+      <a class="btn" href="https://platform.agnes-ai.com" target="_blank" rel="noreferrer">去注册 / 申请 Key →</a>
+    </div>
+    <div class="card">
+      <div class="name">Agnes AI · 官网</div>
+      <div class="role">产品介绍、文档入口。</div>
+      <div class="kv">先看这个了解它是什么</div>
+      <div class="kv">官网右上角「登录」也指向控制台</div>
+      <a class="btn ghost" href="https://www.agnes-ai.com" target="_blank" rel="noreferrer">打开官网 →</a>
+    </div>
+    <div class="card">
+      <div class="name">Agnes · 图片模型文档</div>
+      <div class="role">接图片接口前必看（有两个坑）</div>
+      <div class="kv"><code>size</code> 用档位 <b>1K/2K/3K/4K</b> + <code>ratio</code></div>
+      <div class="kv"><code>response_format</code> 必须嵌在 <b>extra_body</b> 里</div>
+      <div class="kv"><b>没有 mask</b> → 不支持局部重绘</div>
+      <a class="btn ghost" href="https://www.agnes-ai.com/zh-Hans/docs/agnes-image-25-flash" target="_blank" rel="noreferrer">看文档 →</a>
+    </div>
+    <div class="card">
+      <div class="name">Agnes · 视频模型文档</div>
+      <div class="role">异步任务 / 720P / 4–12 秒</div>
+      <div class="kv">三种模式：text / keyframe / reference</div>
+      <div class="kv"><b>媒体必须是公网 URL</b>（插件会自动上传）</div>
+      <div class="kv">免费档队列常满（503）且有限流（429）</div>
+      <a class="btn ghost" href="https://www.agnes-ai.com/zh-Hans/docs/agnes-video-25-flash" target="_blank" rel="noreferrer">看文档 →</a>
+    </div>
+    <div class="card">
+      <div class="name">Agnes · 定价</div>
+      <div class="role">确认当前是否还免费（价格会变）</div>
+      <div class="kv">作者写这份说明时的状态：图片免费、视频 $0/秒</div>
+      <a class="btn ghost" href="https://www.agnes-ai.com/zh-Hans/docs/pricing" target="_blank" rel="noreferrer">看定价 →</a>
+    </div>
+    <div class="card">
+      <div class="name">Agnes · 快速开始</div>
+      <div class="role">curl 级别的接入示例</div>
+      <div class="kv">想自己写脚本调的话看这里</div>
+      <a class="btn ghost" href="https://www.agnes-ai.com/zh-Hans/docs/quickstart" target="_blank" rel="noreferrer">看接入文档 →</a>
+    </div>
+  </div>
+
+  <h3>② 其他可选服务商</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="name">OpenAI 官方</div>
+      <div class="role">最稳的画质与生态，按张计费。</div>
+      <div class="kv">Base URL：<b>https://api.openai.com/v1</b></div>
+      <div class="kv">模型：<b>gpt-image-2</b></div>
+      <div class="kv">需要账号里有余额</div>
+      <a class="btn" href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">去申请 Key →</a>
+      <a class="btn ghost small" href="https://platform.openai.com/usage" target="_blank" rel="noreferrer">看用量</a>
+      <a class="btn ghost small" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noreferrer">充值</a>
+    </div>
+    <div class="card">
+      <div class="name">fal.ai</div>
+      <div class="role">按张计费，端点式调用。</div>
+      <div class="kv">Base URL：<b>https://fal.run</b></div>
+      <div class="kv">端点：<b>openai/gpt-image-2</b></div>
+      <a class="btn" href="https://fal.ai/dashboard/keys" target="_blank" rel="noreferrer">去申请 Key →</a>
+      <a class="btn ghost small" href="https://fal.ai/dashboard" target="_blank" rel="noreferrer">控制台</a>
+    </div>
+    <div class="card">
+      <div class="name">中转站 / 自建代理</div>
+      <div class="role">如果你已经有 OpenAI 兼容的中转站，直接填它的。</div>
+      <div class="kv">Base URL：<b>https://&lt;你的中转站&gt;/v1</b></div>
+      <div class="kv">模型：<b>中转站文档里写明的名字</b></div>
+      <div class="kv">插件会自动兼容 baseUrl 末尾缺 <code>/v1</code></div>
+      <a class="btn ghost" href="#config">看怎么填 →</a>
+    </div>
+    <div class="card">
+      <div class="name">Node.js（前置依赖）</div>
+      <div class="role">插件要求 Node 20 或更新版本。</div>
+      <div class="kv">作者用的是 <b>Node 22.22.3</b></div>
+      <a class="btn ghost" href="https://nodejs.org/zh-cn" target="_blank" rel="noreferrer">去下载 →</a>
+    </div>
+  </div>
+
+  <h3>③ 免费图床（「导入图片生成视频」自动用，<b>不需要 Key</b>）</h3>
+  <p class="sub">
+    Agnes 视频接口要的是<b>公网可访问的 URL</b>，本地文件得先传出去。插件内置了一条策略链，
+    默认走免费匿名图床 —— 这类图床是临时的（小时级），并且以下可达性是
+    <b>在作者网络下</b>实测的，你那边可能完全不同。
+  </p>
+  <table>
+    <thead><tr><th>图床</th><th>网址</th><th>作者网络下实测</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><b>uguu.se</b></td><td><a href="https://uguu.se" target="_blank" rel="noreferrer">https://uguu.se</a></td>
+          <td><span class="pill ok">可用</span></td><td>唯一通的。约 3 小时失效</td></tr>
+      <tr><td>litterbox</td><td><a href="https://litterbox.catbox.moe" target="_blank" rel="noreferrer">litterbox.catbox.moe</a></td>
+          <td><span class="pill bad">HTTP 500</span></td><td>服务端错误</td></tr>
+      <tr><td>tmpfiles.org</td><td><a href="https://tmpfiles.org" target="_blank" rel="noreferrer">tmpfiles.org</a></td>
+          <td><span class="pill bad">连接失败</span></td><td>境内网络不可达</td></tr>
+      <tr><td>catbox.moe</td><td><a href="https://catbox.moe" target="_blank" rel="noreferrer">catbox.moe</a></td>
+          <td><span class="pill bad">连接失败</span></td><td>境内网络不可达</td></tr>
+      <tr><td>0x0.st</td><td><a href="https://0x0.st" target="_blank" rel="noreferrer">0x0.st</a></td>
+          <td><span class="pill bad">已停收</span></td><td>官方："uploads disabled"</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    如果一家都不通：进 DSH 让 AI 跑
+    <code>config(action="set_upload", patch={publicBaseUrl:"https://你的隧道域名"})</code>
+    或者 <code>patch={uploadEndpoint:"https://你的图床/upload"}</code>，就完全不经过这些第三方。
+  </div>
+
+  <!-- ================= 配置 ================= -->
+  <h2 id="config">把 Key 填进插件</h2>
+
+  <h3>方式 A · 让 AI 帮你配（在 DSH 对话里直接说）</h3>
+  <p>把下面这段里的 <code>sk-你的key</code> 换成你自己的，然后粘进对话：</p>
+  <pre>config(action="set_profile", profile={
+  "id": "agnes-2.5-flash",
+  "name": "Agnes Image 2.5 Flash（免费档）",
+  "provider": "agnes",
+  "baseUrl": "https://apihub.agnes-ai.com/v1",
+  "apiKey": "sk-你的key",
+  "model": "agnes-image-2.5-flash",
+  "apiMode": "images",
+  "pricePerImage": 0
+})
+config(action="set_active", profile_id="agnes-2.5-flash")
+config(action="test", profile_id="agnes-2.5-flash")</pre>
+
+  <h3>方式 B · 面板里填</h3>
+  <p>侧栏「生图」→ 配置区 → 填 <code>baseUrl</code> / <code>apiKey</code> / <code>model</code> → 保存。
+     侧栏「余额」页能看到「还能不能花钱、花了多少」。</p>
+
+  <h3>方式 C · 导入现成模板</h3>
+  <pre>config(action="import", path="examples/agnes-config.json")</pre>
+  <p class="sub">包里的 <code>examples/agnes-config.json</code> 包含 Agnes 图片 + 视频两套配置，<code>apiKey</code> 是空的，自己填。</p>
+
+  <h3>先用哪家？</h3>
+  <table>
+    <thead><tr><th>你的情况</th><th>建议</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>想先零成本跑通全流程</td><td><b>Agnes AI</b></td><td>图片/视频当前都免费，Key 好申请</td></tr>
+      <tr><td>要最稳的画质与生态</td><td>OpenAI 官方</td><td>官方直连，无中转风险</td></tr>
+      <tr><td>已有中转站</td><td>用中转站</td><td>便宜、境内快，但注意隐私</td></tr>
+      <tr><td>要出视频</td><td>Agnes 视频</td><td>目前只有它接进了异步视频模板</td></tr>
+      <tr><td>没有 Key / 想本地跑</td><td>自建 OpenAI 兼容服务</td><td><code>baseUrl</code> 填 <code>http://127.0.0.1:端口/v1</code>，<code>apiKey</code> 随便填个非空字符串</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ================= 排错 ================= -->
+  <h2 id="troubleshoot">排错：装完不对劲怎么办</h2>
+  <table>
+    <thead><tr><th>现象</th><th>原因 / 怎么办</th></tr></thead>
+    <tbody>
+      <tr><td>侧栏看不到那四个图标</td>
+          <td>没重启 DSH。双击 <code>重启DSH并加载生图插件.bat</code>，再 <kbd>Ctrl</kbd>+<kbd>F5</kbd>。
+              还不行 → DSH 版本差异导致客户端没加载（工具调用仍可用）。</td></tr>
+      <tr><td>侧栏图标点了没反应</td>
+          <td>该页缺少对应的 main 面板。跑 <code>node scripts\inventory.mjs</code>，
+              看到「✓ 侧栏 id 与 main key 全部配对」才算正常。</td></tr>
+      <tr><td>一键安装说「找不到 profiles 目录」</td>
+          <td>DSH 的安装位置不是默认的。先确认浏览器能打开
+              <a href="http://127.0.0.1:3080" target="_blank" rel="noreferrer">http://127.0.0.1:3080</a>，
+              再设环境变量 <code>DSH_HOME</code> 指向你的 <code>.dsh</code> 目录，重跑。</td></tr>
+      <tr><td>一键安装说「创建链接失败」</td>
+          <td>它已经自动改用「复制」方式。复制方式下改插件代码不会即时生效。</td></tr>
+      <tr><td><code>npm test</code> 有红</td>
+          <td>插件本体损坏（解压不完整？）。重新解压 zip 再试。</td></tr>
+      <tr><td>报 <b>401 / 403</b></td>
+          <td>Key 无效、过期、没权限或没余额。跑 <code>config(action="test")</code> 探连通。</td></tr>
+      <tr><td>报 <b>429</b></td>
+          <td>限流（Agnes 免费档视频尤其明显）。等额度恢复或升级，重试没用。</td></tr>
+      <tr><td>报 <b>503 video_queue_full</b></td>
+          <td>视频队列满，免费档常见且可能持续很久。插件会自动退避重试。</td></tr>
+      <tr><td>报 <code>size must be 720P</code></td>
+          <td>Agnes 视频固定 720P，要别的分辨率得换模型。</td></tr>
+      <tr><td>报 <code>media URL could not be downloaded</code></td>
+          <td>素材链接 Agnes 取不到。免费图床可能失效 → 换 <code>publicBaseUrl</code> / <code>uploadEndpoint</code>。</td></tr>
+      <tr><td>想确认插件完好</td>
+          <td><code>npm test</code>（557 个测试应全过）+ <code>node scripts\inventory.mjs</code>（27 工具 / 32 路由 / 4 页配对）。</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ================= 能力 ================= -->
+  <h2>这个插件能干什么</h2>
+  <table>
+    <thead><tr><th>想做什么</th><th>用哪个工具</th></tr></thead>
+    <tbody>
+      <tr><td>文生图 / 一次出多个素材</td><td><code>generate</code></td></tr>
+      <tr><td>改图 / 局部重绘（蒙版）</td><td><code>edit</code></td></tr>
+      <tr><td>批量出图（去重 + 并发 + 容量规划）</td><td><code>batch</code></td></tr>
+      <tr><td>生视频 / <b>导入本地图片生成视频</b></td><td><code>video</code></td></tr>
+      <tr><td><b>像素画净化 + 真像素判定</b></td><td><code>quality(action="pixelize")</code></td></tr>
+      <tr><td>素材体检：缺什么、达不达标、有没有被引用</td><td><code>scan</code></td></tr>
+      <tr><td>按规格缩放并装进游戏</td><td><code>install</code></td></tr>
+      <tr><td>写进游戏的素材登记表</td><td><code>register</code></td></tr>
+      <tr><td>攒够一批再生成（省钱）</td><td><code>pool</code></td></tr>
+      <tr><td>一键工作台：取素材→生成→自检→装机→登记</td><td><code>pipeline</code></td></tr>
+      <tr><td>图标集：一个请求出一整张合集图再切</td><td><code>sheet</code></td></tr>
+      <tr><td>自动化编排（规则/分流/自愈/备份）</td><td><code>auto</code></td></tr>
+      <tr><td>看配了什么、花多少钱</td><td><code>balance</code> / <code>config</code></td></tr>
+      <tr><td>其余（自检/风格/顺序/提示词库/热度/截图/异步任务…）</td><td>见 <code>README.md</code></td></tr>
+    </tbody>
+  </table>
+  <p class="sub">完整说明（含大量实测踩坑记录）在包里的 <code>README.md</code>；快速上手在 <code>5分钟上手.md</code>。</p>
+
+  <div class="footer">
+    dsh-gpt-image v1.0.1 · MIT License · 作者 yyfabab<br>
+    这份页面是本地文件，不联网、不上报任何信息。API Key 只存在你自己的机器上。
+  </div>
+</div>
+</body>
+</html>

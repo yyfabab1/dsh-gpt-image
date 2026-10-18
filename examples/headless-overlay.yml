@@ -1,0 +1,8 @@
+# 给任意 profile 临时加装 GPT Image 出图台（不落盘到 profile）
+# 用法： dsh --profile headless --patch "D:\AHC\dsh-gpt-image\examples\headless-overlay.yml" headless "调用 gpt image 的 list 工具"
+- insert:
+    - id: dsh-gpt-image
+      name: '@dsh-external/dsh-gpt-image'
+      config:
+        dataDir: ''
+        outputDir: ''

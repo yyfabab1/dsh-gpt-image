@@ -1,0 +1,26 @@
+{
+  "name": "dsh-gpt-image",
+  "owner": "yyfabab",
+  "url": "https://github.com/yyfabab/dsh-gpt-image",
+  "category": [
+    "image-generation",
+    "video-generation",
+    "assets",
+    "tools"
+  ],
+  "description": {
+    "en": "AI image & video production pipeline for DeepSeek Harness: text-to-image, image edit with masks, async video generation (including importing local images via auto-upload), pixel-art purification with a measurable 'true pixel' verdict, spec-as-code asset validation/auto-fix, self-check + install + register, batching with fingerprint dedup, and a spend gate that keeps free and paid tiers accounted separately. 27 agent tools + 4 sidebar pages, zero dependencies.",
+    "zh": "AI 生图/生视频全流水线（DeepSeek Harness）：文生图、图生图/局部重绘、异步视频（可导入本地图片，自动换公网 URL）、像素画净化与「真像素」可判定验收、素材规格即代码（校验+自动修复）、自检/装机/登记、批量去重、花钱闸门（免费档独立记账）。27 个工具 + 侧栏 4 页，零依赖。"
+  },
+  "npm": "@dsh-external/dsh-gpt-image",
+  "install": "dsh plugin --profile web add @dsh-external/dsh-gpt-image",
+  "added": "2026-10-01",
+  "capabilities": [
+    "fs-read",
+    "fs-write",
+    "network",
+    "credentials",
+    "env"
+  ],
+  "screenshots": []
+}

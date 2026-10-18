@@ -1,0 +1,15 @@
+# dsh-gpt-image bundle patch（GPT Image 出图台）
+# 默认值留空 => 用插件内置默认（数据目录 ~/.dsh/gpt-image，输出目录 ~/.dsh/gpt-image/output）。
+# 需要覆盖时在 profile 里加：
+#   - insert:
+#       - id: dsh-gpt-image
+#         name: '@dsh-external/dsh-gpt-image'
+#         config:
+#           dataDir: 'D:\\AHC\\gpt-image-data'
+#           outputDir: 'D:\\AHC\\aishengtu图片地址'
+- insert:
+    - id: dsh-gpt-image
+      name: '@dsh-external/dsh-gpt-image'
+      config:
+        dataDir: ''
+        outputDir: ''

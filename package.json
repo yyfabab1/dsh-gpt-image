@@ -1,0 +1,72 @@
+{
+  "name": "@dsh-external/dsh-gpt-image",
+  "version": "1.0.1",
+  "description": "AI 生图/生视频全流水线插件（DeepSeek Harness）：文生图 · 图生图/局部重绘 · 异步视频（含导入本地图片）· 像素画净化与真像素判定 · 素材规格即代码 · 自检/装机/登记 · 批量与去重 · 花钱闸门与免费档独立记账 · 27 个工具 + 侧栏 4 页。零依赖。",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "scripts",
+    "examples",
+    "docs",
+    "cordis.patch.yml",
+    "icon.svg",
+    "market-entry.json",
+    "README.md",
+    "5分钟上手.md",
+    "安装说明.html",
+    "一键安装.bat",
+    "install.ps1",
+    "重启DSH并加载生图插件.bat"
+  ],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "license": "MIT",
+  "author": "yyfabab",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yyfabab/dsh-gpt-image.git"
+  },
+  "homepage": "https://github.com/yyfabab/dsh-gpt-image#readme",
+  "bugs": {
+    "url": "https://github.com/yyfabab/dsh-gpt-image/issues"
+  },
+  "icon": "icon.svg",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "agent-tools",
+    "gpt-image",
+    "image-generation",
+    "image-editing",
+    "inpainting",
+    "video-generation",
+    "pixel-art",
+    "sprite-sheet",
+    "game-assets",
+    "openai-compatible",
+    "agnes"
+  ]
+}

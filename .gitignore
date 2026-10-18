@@ -1,0 +1,44 @@
+# 依赖与临时产物
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# 编辑器 / 系统垃圾
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 各种备份副本（曾经在仓库里放读过 .bak）
+*.bak
+*.bak-*
+*.bak.*
+README.md.bak
+*.orig
+
+# 临时文件
+.tmp/
+.tmp-*
+*.tmp
+*.log
+*.pid
+
+# 打包/校验用的临时目录
+.pkg-build/
+.pkg-verify/
+
+# 运行产物（插件会写到数据目录，不在仓库里）
+output/
+data/
+
+# 环境变量 / 密钥
+.env
+.env.*
+*.secret.json
+profiles.local.json
+
+# Windows 上误创建的空文件（曾被错解析的 bat 造出 environment / install）
+environment
+install
