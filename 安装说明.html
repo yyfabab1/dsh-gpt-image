@@ -71,8 +71,8 @@
 <body>
 <div class="wrap">
 
-  <h1>dsh-gpt-image v1.2.1</h1>
-  <div class="sub">AI 生图 / 生视频 / 像素画净化 · DeepSeek Harness 插件 · 28 个工具 + 侧栏 5 页 · 零依赖</div>
+  <h1>dsh-gpt-image v1.3.0</h1>
+  <div class="sub">AI 生图 / 生视频 / 像素画净化 · DeepSeek Harness 插件 · 29 个工具 + 侧栏 5 页 · 零依赖</div>
 
   <!-- ================= 警告 ================= -->
   <div class="warn">
@@ -342,7 +342,7 @@ config(action="test", profile_id="agnes-2.5-flash")</pre>
       <tr><td>报 <code>media URL could not be downloaded</code></td>
           <td>素材链接 Agnes 取不到。免费图床可能失效 → 换 <code>publicBaseUrl</code> / <code>uploadEndpoint</code>。</td></tr>
       <tr><td>想确认插件完好</td>
-          <td><code>npm test</code>（619 个测试应全过）+ <code>node scripts\inventory.mjs</code>（28 工具 / 35 路由 / 5 页配对）。</td></tr>
+          <td><code>npm test</code>（643 个测试应全过）+ <code>node scripts\inventory.mjs</code>（28 工具 / 36 路由 / 5 页配对）。</td></tr>
     </tbody>
   </table>
 
@@ -362,7 +362,9 @@ config(action="test", profile_id="agnes-2.5-flash")</pre>
       <tr><td>攒够一批再生成（省钱）</td><td><code>pool</code></td></tr>
       <tr><td>一键工作台：取素材→生成→自检→装机→登记</td><td><code>pipeline</code></td></tr>
       <tr><td>图标集：一个请求出一整张合集图再切</td><td><code>sheet</code></td></tr>
-      <tr><td>自动化编排（规则/分流/自愈/备份）</td><td><code>auto</code></td></tr>
+      <tr><td><b>拆件傀儡：部件图 → 图集 + 骨骼 JSON（能直接进游戏拼）</b></td><td><code>rig</code></td></tr>
+      <tr><td>生音效 / 角色配音 / 作曲</td><td><code>audio</code></td></tr>
+<tr><td>自动化编排（规则/分流/自愈/备份）</td><td><code>auto</code></td></tr>
       <tr><td>看配了什么、花多少钱</td><td><code>balance</code> / <code>config</code></td></tr>
       <tr><td>其余（自检/风格/顺序/提示词库/热度/截图/异步任务…）</td><td>见 <code>README.md</code></td></tr>
     </tbody>
@@ -370,7 +372,7 @@ config(action="test", profile_id="agnes-2.5-flash")</pre>
   <p class="sub">完整说明（含大量实测踩坑记录）在包里的 <code>README.md</code>；快速上手在 <code>5分钟上手.md</code>。</p>
 
   <div class="footer">
-    dsh-gpt-image v1.2.1 · MIT License · 作者 yyfabab<br>
+    dsh-gpt-image v1.3.0 · MIT License · 作者 yyfabab<br>
     这份页面是本地文件，不联网、不上报任何信息。API Key 只存在你自己的机器上。
   </div>
 </div>

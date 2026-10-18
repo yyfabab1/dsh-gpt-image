@@ -594,7 +594,7 @@ dsh plugin --profile web add @dsh-external/dsh-gpt-image
 ### 自检
 
 ```cmd
-npm test                        :: 619 个测试应全过
+npm test                        :: 643 个测试应全过
 node scripts\ inventory.mjs      :: 27 工具 / 32 路由 / 4 侧栏页配对
 ```
 
@@ -1224,6 +1224,93 @@ audio(action="status", job_id="j2b0b8bab")               // 查进度（长任�
 
 ---
 
+---
+
+## 拆件傀儡 · Cutout Puppet（部件图 → 图集 + 骨骼 JSON）
+
+> **核心认知**：**"拼起来"是运行时按骨骼矩阵绘制，不是让 AI 生成一张拼好的图。**
+> AI 负责素材和初版元数据，程序负责精确拼合。所以产物是「图集 PNG + skeleton.json」，
+> 游戏运行时读这两样就能拼 —— 而不是一张死图。
+
+```jsonc
+// 一条命令：生成部件图 → 切分 → 几何命名 → 自动合拢关节 → 骨架 JSON → 预览器
+rig(action="generate", prompt="红发女骑士，皮甲，短剑", layout="positional")
+
+// 已有部件图（不花钱）
+rig(action="build",  sheet="D:\\素材\\hero_parts.png", project="末日余烬", name="hero")
+rig(action="preview")                        // 生成自包含预览器（可拖关节/改 pivot/改名）
+rig(action="pivot",  part="head", pivot_ratio_y=0.95)
+rig(action="rename", part="torso", to="chest")
+rig(action="export", format="spine")         // generic / spine / dragonbones
+rig(action="validate")
+```
+
+### 两种版面，强项互补（选错会白忙）
+
+| 版面 | 名字（语义） | 摆放（装配位置） | 说明 |
+|---|---|---|---|
+| **`positional`**（推荐） | ❌ 靠几何猜 | ✅ **位置即装配关系** | AI 把角色按解剖位置画好，只把四肢拉开几像素。切分按 alpha 连通域，装配位置直接取自图纸几何 |
+| `grid` | ✅ 格子↔槽位硬对应 | ❌ 靠模板粗偏移 | AI 摆成 4×4 零件盘。名字精确，但格子里没有位置信息 |
+
+`positional` 的关键性质（有测试钉住）：**所有变换归零时，部件回到它在图纸上的原始相对位置**。
+所以"切出来 → 直接拼 → 就是原图那个角色"，不需要猜骨骼偏移。
+
+### 命名是启发式的，而且**必须留人工纠正**
+
+`positional` 版面的名字是用几何规则猜的（顶部居中=头、中段最大=躯干、外侧由近到远=上臂/前臂/手、
+下段自上而下=大腿/小腿/脚）。对规范 T-pose 准确率不错，但**它本质是启发式**。
+
+所以本模块的三条红线：
+1. **匹配不上就保留原名 + 警告**，绝不硬塞一个看起来合理的名字（那会让层级错得很隐蔽）
+2. **预览器必须能改名** —— 名字决定父子关系，改错名字 = 骨架错
+3. **AI 给不出精确 pivot**，所以 `autoAssemble` 只做"把关节缝收拢"（单件位移限幅 4% 角色高），
+   最终 pivot 一定由人在预览器里拖
+
+### 元数据格式（`skeleton.json`）
+
+```jsonc
+{
+  "version": 1, "name": "hero", "template": "humanoid", "layout": "positional",
+  "atlas": { "image": "atlas.png", "width": 512, "height": 256 },
+  "bones": [
+    { "name": "forearm_L", "parent": "upper_arm_L", "x": 12.5, "y": -3.2,
+      "rotation": 0, "scaleX": 1, "scaleY": 1 }
+  ],
+  "parts": [
+    { "name": "forearm_L", "rect": [64, 0, 20, 44], "pivot": [10, 4],
+      "zOrder": 41, "sourceRect": [228, 124, 30, 16] }
+  ],
+  "drawOrder": ["upper_arm_R", "forearm_R", "…"]   // 按 zOrder 升序
+}
+```
+
+- `x/y` 是**相对父级**的偏移；`pivot` 是**部件矩形内的像素坐标**（旋转中心）
+- `rect` 是它在图集里的位置；`drawOrder` 决定谁压在谁上面
+- 运行时：按 `bones` 层级累乘世界变换 → 按 `drawOrder` 绘制 → 每件从 `rect` 取图、以 `pivot` 为原点
+
+### 预览器（自包含单文件）
+
+`rig(action="preview")` 生成 `preview.html`，图集内联成 data URL、骨架内联成 JSON，
+**双击就能开，不用起服务器**。里面可以：拖蓝圆转关节、`Shift`+拖改 pivot、左侧改名、
+「合拢关节」自动收缝、「导出骨架 JSON」拿回改好的结果。
+
+也有 http 入口（面板里给链接用）：`GET /api/rig-preview?path=<preview.html 的绝对路径>`
+
+### 导出格式
+
+| 格式 | 状态 |
+|---|---|
+| `generic`（通用 JSON + 图集） | ✅ 自带运行时语义，自己写 20 行就能吃（PixiJS/Phaser/自研引擎都行） |
+| `spine` | ⚠️ 结构已按 Spine 3.8 组织并校验，但**没有在真实 Spine 编辑器里导入验证过** |
+| `dragonbones` | ⚠️ 同上（DragonBones 5.5 结构） |
+
+> 说实话：Spine / DragonBones 的图集打包有自己的规范（`.atlas` / `_tex.json`），
+> 本插件给的是 `rect` 信息 + 适配后的骨架 JSON。**先用编辑器导入跑一遍再谈能用**。
+> Godot / Unity 建议直接用 `generic` —— 它们的原生格式差异大，直出容易错，
+> 给一份能跑的运行时脚本比给一份"看起来像"的私有格式靠谱。
+
+---
+
 ## 工具 · Tools
 
 | 工具 | 作用 |
@@ -1247,6 +1334,7 @@ audio(action="status", job_id="j2b0b8bab")               // 查进度（长任�
 | `_dsh_external_dsh_gpt_image_quality` | 质量地基：spec 校验修复 / **`pixelize` 像素画净化** / 协调性 / 变体 / 图集 / 标签 / 评分路由 |
 | `_dsh_external_dsh_gpt_image_prompts` | 提示词库 + **项目提示词包**（`pack-show` / `pack-save` / `pack-template` / `pack-validate` / `pack-list`）—— 统一画风 |
 | `_dsh_external_dsh_gpt_image_audio` | **生音频**：角色配音 `speak`（支持 `[语气]` 标签）/ 作曲演唱 `song` / 翻唱 `sing` / 换声 `rvc`·`seedvc` / `status` |
+| `_dsh_external_dsh_gpt_image_rig` | **拆件傀儡**：部件图 → 图集 + 骨骼 JSON（`generate` / `build` / `pivot` / `rename` / `export` / `preview` / `validate`）—— 运行时按骨骼拼合 |
 | `_dsh_external_dsh_gpt_image_config` | 配置 / 花费 / 校准 / 锁 / `set_upload`（素材上传方式） |
 
 示例（AI 自己就能这么调）：
@@ -1365,8 +1453,8 @@ dsh-gpt-image/
 │   ├── upload.js    ★ 本地文件 → 公网 URL（策略链：自建前缀 / 自配端点 / 免费图床）
 │   ├── multipart.js ★ 零依赖 multipart 解析（面板「导入图片」用）
 │   ├── store.js     配置档（Playground 配置互导）+ 出图历史
-│   ├── tools.js     28 个工具
-│   ├── server.js    面板 /gpt-image（35 个路由）
+│   ├── tools.js     29 个工具
+│   ├── server.js    面板 /gpt-image（36 个路由）
 │   └── util.js      HTTP / 路径安全 / 同源栅栏
 ├── tests/           557 个用例（25 个文件，`npm test` 走 glob 全量）
 ├── scripts/probe.mjs            真机 1 张探针

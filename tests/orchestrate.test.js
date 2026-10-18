@@ -1062,7 +1062,7 @@ test('L5 生成后自动后处理：不覆盖原图，且可关闭', async () =>
 
 // ══════ 端到端：真的注册插件并调工具（不读源码，而是执行）══════
 
-test('端到端：注册 28 个工具，且 auto.rules 能返回操作符与谓词（回归：曾漏 import）', async () => {
+test('端到端：注册 29 个工具，且 auto.rules 能返回操作符与谓词（回归：曾漏 import）', async () => {
   const { apply } = await import('../lib/index.js')
   const mkdtemp = (await import('node:fs/promises')).mkdtemp
   const os = await import('node:os')
@@ -1077,7 +1077,7 @@ test('端到端：注册 28 个工具，且 auto.rules 能返回操作符与谓�
   try {
     apply({ inject: (d, fn) => { try { fn(scope) } catch { /* 忽略 */ } }, effect: scope.effect, get: () => undefined, tools: scope.tools },
       { dataDir: dir, outputDir: dir })
-    assert.equal(registry.size, 28, `应注册 28 个工具，实际 ${registry.size}`)
+    assert.equal(registry.size, 29, `应注册 29 个工具，实际 ${registry.size}`)
     const auto = registry.get('_dsh_external_dsh_gpt_image_auto')
     assert.ok(auto, '缺少 auto 工具')
     // 回归：auto.rules 曾因 OPERATORS/PREDICATES 没 import 而报 "OPERATORS is not defined"

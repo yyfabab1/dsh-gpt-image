@@ -122,6 +122,7 @@ const T = {
   approval: '_dsh_external_dsh_gpt_image_approval',
   cross_style: '_dsh_external_dsh_gpt_image_cross_style',
   audio: '_dsh_external_dsh_gpt_image_audio',
+  rig: '_dsh_external_dsh_gpt_image_rig',
   config: '_dsh_external_dsh_gpt_image_config',
 }
 
