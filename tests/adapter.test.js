@@ -15,6 +15,8 @@ import path from 'node:path'
 import {
   normalizeSchema, validateSchema, fieldIndex, describeSchema, emitConfig, lintConfig,
   parseIni, healthCheck, deployFiles, schemaFromCodeTable, DIAGNOSTICS, SCHEMA_VERSION,
+  parseConfigLossless, serializeConfig, verifyRoundTrip, editConfig,
+  loadSnippets, saveSnippet, removeSnippet, applySnippets,
 } from '../lib/adapter.js'
 
 /** 一份小而完整的测试字典：两个段、一个枚举、引用规则、不误报清单。 */
@@ -415,4 +417,102 @@ test('DIAGNOSTICS：码表稳定 —— 编号不跳、每项都有说明和修�
     assert.ok(def.fix !== undefined, `${code} 缺修法`)
   }
   assert.equal(SCHEMA_VERSION, 1)
+})
+
+/* ---------------- 双向编辑（往返恒等 + 只改目标行） ---------------- */
+
+test('★ 往返恒等：无损解析后原样序列化必须**逐字节等于原文**', () => {
+  const samples = [
+    '# 注释\n[core]\nname: a\nmaxHp: 5\n',
+    '# 注释\r\n[core]\r\nname: a    # 行尾注释\r\n\r\n@memory x\r\n  缩进键: 值\r\n',
+    '',
+    '[a]\n\n\n[b]\nx: 1',
+    '   \n[core]\nk: v\n   \n',
+  ]
+  for (const text of samples) {
+    const r = verifyRoundTrip(text)
+    assert.equal(r.ok, true, `往返不一致：${JSON.stringify(text)}`)
+  }
+})
+
+test('双向编辑：只改目标行，注释/缩进/空行/@指令/换行风格全部保留', () => {
+  const text = [
+    '# 我的单位（这句注释必须留着）',
+    '[core]',
+    'name: old_tank    # 行尾注释也要留',
+    'maxHp:  200',
+    '',
+    '@memory something',
+    '  缩进键: 值',
+    '[graphics]',
+    'image: a.png',
+    '',
+  ].join('\r\n')
+  const r = editConfig({ text, edits: [
+    { section: 'core', key: 'maxHp', value: 350 },
+    { section: 'core', key: 'name', value: 'new_tank' },
+  ] })
+  assert.equal(r.counts.updated, 2)
+  assert.ok(r.text.includes('# 我的单位（这句注释必须留着）'), '整行注释被吃了')
+  assert.ok(r.text.includes('# 行尾注释也要留'), '行尾注释被吃了（第一版就丢过）')
+  assert.ok(r.text.includes('@memory something'), '@指令被吃了')
+  assert.ok(r.text.includes('  缩进键: 值'), '缩进被改了')
+  assert.ok(r.text.includes('maxHp:  350'), '冒号后的空格风格应保留（原来就是两个空格）')
+  // 只改了两行 —— 其它行必须原文不动
+  const before = text.split('\n')
+  const after = r.text.split('\n')
+  assert.equal(after.length, before.length, '行数不该变')
+  for (let i = 0; i < before.length; i++) {
+    if (i === 2 || i === 3) continue
+    assert.equal(after[i], before[i], `第 ${i + 1} 行被莫名改动了`)
+  }
+  // 换行风格一致
+  const cjkLines = after.filter((line) => line !== '')
+  assert.ok(cjkLines.every((line) => line.endsWith('\r')), 'CRLF 文件改完不该出现裸 LF 行')
+})
+
+test('双向编辑：键不存在时追加到段尾、remove 删整行、不允许追加时如实跳过', () => {
+  const text = '[core]\nname: a\n[attack]\nrange: 10\n'
+  const added = editConfig({ text, edits: [{ section: 'core', key: 'maxHp', value: 100 }] })
+  assert.equal(added.counts.added, 1)
+  const lines = added.text.split('\n')
+  assert.equal(lines[2], 'maxHp: 100', `应追加在 [core] 段尾，实际：${JSON.stringify(lines)}`)
+
+  const removed = editConfig({ text, edits: [{ section: 'attack', key: 'range', remove: true }] })
+  assert.equal(removed.counts.removed, 1)
+  assert.ok(!removed.text.includes('range: 10'))
+  assert.ok(removed.text.includes('[attack]'), '删键不该删掉段头')
+
+  const skipped = editConfig({ text, addMissing: false, edits: [{ section: 'core', key: '没有的键', value: 1 }] })
+  assert.equal(skipped.ok, false)
+  assert.equal(skipped.text, text, '跳过时原文一个字都不该变')
+})
+
+test('背包：存/列/套用/删片段（片段叠在 values 下面，后给的覆盖先给的）', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'adapter-snippet-'))
+  try {
+    assert.equal((await loadSnippets(dir, 'demo')).snippets ? Object.keys((await loadSnippets(dir, 'demo')).snippets).length : 0, 0)
+
+    const s1 = await saveSnippet({ dataDir: dir, schemaId: 'demo', name: '坦克基础', section: 'core', fields: { maxHp: 500, radius: 14 }, tags: ['地面'] })
+    assert.equal(s1.ok, true, s1.error)
+    const s2 = await saveSnippet({ dataDir: dir, schemaId: 'demo', name: '轻型武器', section: 'attack', fields: { maxAttackRange: 150 } })
+    assert.equal(s2.total, 2)
+
+    const applied = await applySnippets({ dataDir: dir, schemaId: 'demo', names: ['坦克基础', '轻型武器'], values: { core: { name: 'mini', maxHp: 600 } } })
+    assert.equal(applied.ok, true)
+    assert.equal(applied.values.core.maxHp, 600, 'values 应覆盖片段（"用模板但改血量"是最常见用法）')
+    assert.equal(applied.values.core.radius, 14, '片段里没被覆盖的字段要留下')
+    assert.equal(applied.values.attack.maxAttackRange, 150)
+    assert.equal(applied.values.core.name, 'mini')
+
+    const missing = await applySnippets({ dataDir: dir, schemaId: 'demo', names: ['不存在的片段'], values: {} })
+    assert.equal(missing.ok, false)
+    assert.ok(missing.available.includes('坦克基础'))
+
+    const removed = await removeSnippet({ dataDir: dir, schemaId: 'demo', name: '轻型武器' })
+    assert.equal(removed.ok, true)
+    assert.deepEqual(removed.remaining, ['坦克基础'])
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
 })

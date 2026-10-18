@@ -594,7 +594,7 @@ dsh plugin --profile web add @dsh-external/dsh-gpt-image
 ### 自检
 
 ```cmd
-npm test                        :: 666 个测试应全过
+npm test                        :: 687 个测试应全过
 node scripts\ inventory.mjs      :: 27 工具 / 32 路由 / 4 侧栏页配对
 ```
 
@@ -1313,6 +1313,71 @@ rig(action="validate")
 
 ---
 
+## 动画 · 动作库（用人话生成关键帧）
+
+### 核心判断：**AI 不编关节角度，只做「选动作 + 给参数」**
+
+让模型"生成一个举枪动作"，它给你的角度十次有八次是肢体折断的。这不是模型笨 ——
+是"美术调过的角度"这种知识不在语言模型里。
+
+所以正确的分工是：
+
+> **AI 负责理解你要什么动作 + 给参数，角度由数据化的动作库提供。**
+> 动作库里的角度是调过、可复用、可测试的；AI 的输出退化成一次**检索 + 参数化**，
+> 而检索和参数化这两件事它是可靠的。
+
+和「代码表」同一个道理：**不确定性收进数据，代码只做确定的事。**
+
+### 用法
+
+```jsonc
+rig(action="motion")                                    // 看动作库（13 个动作）
+rig(action="animate", prompt="举枪攻击")                  // ← 直接说人话
+rig(action="animate", prompt="我要他快速跑起来")           // 自动读出 speed=1.5
+rig(action="animate", prompt="左手挥一下")                 // 自动读出 mirror=true
+rig(action="animate", prompt="夸张地挥手")                 // 自动读出 amplitude=1.35
+rig(action="animations")                                // 看已有动画
+rig(action="preview")                                   // 打开预览器，左侧有时间轴：▶播放 / 拖动进度
+```
+
+内置 13 个动作：`待机` `走动` `奔跑` `举枪瞄准` `开火` **`举枪攻击`** `挥砍` `投掷` `受击` `死亡` `跳跃` `挥手` `蹲下`
+
+### 组合动作（不是单帧）
+
+「举枪攻击」不是"开火"那 0.32 秒 —— 真实动作是 **抬枪瞄准 → 开火后坐 → 收枪**。
+只播 `fire` 会变成"手已经举着凭空抖一下"。所以 `aim_fire` 是 `aim → fire → aim` 三段拼起来
+（`mergeAnimations` 做时间轴拼接）。平票时**组合动作优先**，保证"举枪攻击"拿到的是完整三段。
+
+### 单字别名必须配排除表
+
+`跳` 这种单字别名一定会被「跳舞」误命中。所以动作定义里有 `excludes`：
+`jump` 排除「跳舞/跳绳/跳槽」，`wave` 排除「挥发/挥霍/指挥」，`die` 排除「死机/死锁」。
+**匹配不上就如实说不上并给候选，绝不硬猜一个动作。**
+
+### 关键帧格式
+
+```jsonc
+"animations": {
+  "walk": {
+    "motion": "walk", "label": "走动", "duration": 0.9, "loop": true,
+    "channels": {
+      "thigh_L": { "rotation": [[0, 24], [0.5, -24], [1, 24]] },
+      "hip":     { "y":        [[0, 0], [0.25, -3], [0.5, 0], [0.75, -3], [1, 0]] }
+    }
+  }
+}
+```
+
+- `t` 是**归一化时间 0~1**（跟时长解耦：改速度不用改关键帧）
+- `rotation` 单位度，`x/y` 单位像素
+- 插值是 **smoothstep**（比线性自然，又不用引入缓动曲线表）
+- 巡视器里的采样器和 `lib/motion.js` 用**同一套数学** —— 否则预览看到的和引擎跑出来的不是同一个动作
+
+校验会抓这几类静默错（人看不出来但动作会抽搐）：
+通道写了**不存在的骨骼**（引擎静默忽略）、关键帧时间**不单调**或**超出 0~1**。
+
+---
+
 ## 引擎适配层 · Engine Adapter（素材 → 引擎真的能读的配置）
 
 前面几层做到「图能进游戏」，这一层做到「**配置也能进游戏**」。
@@ -1404,6 +1469,43 @@ node scripts/import-code-table.mjs D:\rw_code_table.json --id rusted-warfare --l
 另外 `health` 会把「代码可用内置图像」这类词表当**白名单** ——
 配置里写 `beam1.png` 是引擎自带的，不能报"文件缺失"（否则一屏假警报）。
 
+### 双向编辑：只改目标行，注释 / 缩进原样保留
+
+那些模组编辑器的硬要求：改一个数值不能把用户的注释、缩进、空行、`@指令`、语句顺序全部重排 ——
+那等于把人家的文件格式化一遍，diff 里全是噪音，还很容易在重排中丢东西。
+
+```jsonc
+adapter(action="edit", schema_id="rusted-warfare", file="D:\\mod\\units\\tank.ini",
+        edits=[{section:"core", key:"maxHp", value:600},
+               {section:"core", key:"radius", value:16},
+               {section:"attack", key:"reload", remove:true}],
+        dry_run=true)     // 先看预览；false 才写盘（写前自动 .bak-before-edit）
+```
+
+做法是「**行级无损解析 + 只重建目标行**」：
+
+| 保留什么 | |
+|---|---|
+| 整行注释 / **行尾注释** | ✅（第一版丢过行尾注释 —— 一个声称"保留原文件"的功能丢数据，比不提供更糟） |
+| 缩进、冒号后的空格风格 | ✅（原来 `maxHp:  200` 两个空格，改完还是两个） |
+| 空行、`@memory` 等指令 | ✅ |
+| 换行风格（CRLF / LF） | ✅（CRLF 文件里新增的行也带 `\r`） |
+
+有测试钉住**往返恒等式**：`parse → serialize` 必须逐字节等于原文。
+
+### 背包：可复用的配置片段
+
+```jsonc
+adapter(action="snippet-save", schema_id="rusted-warfare", name="坦克基础",
+        section="core", values={ maxHp: 500, radius: 14 }, tags=["地面"])
+adapter(action="snippet-list", schema_id="rusted-warfare")
+adapter(action="emit", schema_id="rusted-warfare",
+        snippets=["坦克基础"], values={ core: { name: "mini_tank", maxHp: 600 } })
+```
+
+**片段先铺底、你给的值覆盖它** —— 因为最常见的用法就是「用这套模板，但把血量改成 600」。
+（第一版把这个顺序写反了，片段盖掉了用户的值，等于每次都要再改一遍，功能就废了。）
+
 ### 诚实边界
 
 - **没有 vendor 任何别人的数据**。字典要你自己用 `import-code-table.mjs` 从官方/社区代码表导入；
@@ -1438,8 +1540,8 @@ node scripts/import-code-table.mjs D:\rw_code_table.json --id rusted-warfare --l
 | `_dsh_external_dsh_gpt_image_quality` | 质量地基：spec 校验修复 / **`pixelize` 像素画净化** / 协调性 / 变体 / 图集 / 标签 / 评分路由 |
 | `_dsh_external_dsh_gpt_image_prompts` | 提示词库 + **项目提示词包**（`pack-show` / `pack-save` / `pack-template` / `pack-validate` / `pack-list`）—— 统一画风 |
 | `_dsh_external_dsh_gpt_image_audio` | **生音频**：角色配音 `speak`（支持 `[语气]` 标签）/ 作曲演唱 `song` / 翻唱 `sing` / 换声 `rvc`·`seedvc` / `status` |
-| `_dsh_external_dsh_gpt_image_rig` | **拆件傀儡**：部件图 → 图集 + 骨骼 JSON（`generate` / `build` / `pivot` / `rename` / `export` / `preview` / `validate`）—— 运行时按骨骼拼合 |
-| `_dsh_external_dsh_gpt_image_adapter` | **引擎适配层**：字段字典驱动 —— `import-schema` / `schema` / `emit` 生成配置 / `lint` 稳定错误码诊断 / `health` 素材引用体检 |
+| `_dsh_external_dsh_gpt_image_rig` | **拆件傀儡 + 动画**：部件图 → 图集 + 骨骼 JSON；`animate` 用人话生成关键帧（"举枪攻击"/"快速奔跑"） |
+| `_dsh_external_dsh_gpt_image_adapter` | **引擎适配层**：字段字典驱动 —— `import-schema` / `schema` / `emit` / `lint` 稳定错误码诊断 / `health` 素材引用体检 / `edit` 双向编辑（保留注释）/ `snippet-*` 背包 |
 | `_dsh_external_dsh_gpt_image_config` | 配置 / 花费 / 校准 / 锁 / `set_upload`（素材上传方式） |
 
 示例（AI 自己就能这么调）：
