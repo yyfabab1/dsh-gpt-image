@@ -1037,6 +1037,121 @@ quality(action="pixelize", file="…\\hero_1.png", logical_width=32)   // 默认
 
 ---
 
+## 项目提示词包 · Prompt Pack（统一画风）
+
+**问题**：同一个项目里分十次出图，每次只写「火焰塔图标」，模型就给你十种画风 ——
+有的厚涂、有的描边、有的偏写实。不是模型不行，是你**没把「这个项目长什么样」告诉它**。
+项目里本来就有 `asset-specs.json` 管尺寸/透明，但没有东西管**画风**。这个模块补的就是这块。
+
+**做法**：一个项目一个 `prompt-pack.json`，配一次，之后该项目**所有出图自动带上**。
+
+```jsonc
+prompts(action="pack-template", project="末日余烬")   // 1. 生成起步模板（不用从零写）
+prompts(action="pack-show",     project="末日余烬")   // 2. 看看当前锁了什么
+prompts(action="pack-save",     project="末日余烬", pack={ … })  // 3. 保存
+```
+
+```jsonc
+// <输出目录>/末日余烬/prompt-pack.json
+{
+  "use": "game asset",                       // 用途（官方建议：声明用途来设定"模式"）
+  "style": "统一的暗色废土像素画风，硬边，有限色板，冷灰蓝主色调里点橙色火光",
+  "composition": "俯视 45 度，主体居中，左上柔光，边缘微轮廓光",
+  "palette": ["#101418", "#2b2f36", "#e0603a"],
+  "negative": ["no watermark", "no text", "no extra limbs"],
+  "preserve": ["48px 下轮廓仍可辨认", "与本项目其它素材同色板"],
+  "transparent": true,
+  "characters": { "hero": { "desc": "红发女性雇佣兵，破损护甲，左臂绷带" } },
+  "kinds": { "icon": { "composition": "正俯视，纯侧光" } }
+}
+```
+
+### 组装顺序是有依据的，不是随便排的
+
+顺序照 **OpenAI 官方 gpt-image-2 提示词指南**的「固定顺序」原则：
+
+```
+Intended use → 主体（你写的） → 角色锚点 → Art style → Composition → 透明底 → Keep unchanged → Exclude
+```
+
+官方原文的三条关键说法（都在那份 cookbook 里）：
+
+- 「按**固定顺序**写提示词：背景/场景 → 主体 → 关键细节 → 约束」，并声明**用途**来设定"模式"
+- 「**Character Anchor**：建立一个可复用的角色锚点，锁住外观/比例/服装/气质，之后每张都复用它」
+- 「**Constraints**：显式写排除项和不变项（no watermark / no extra text / preserve …）」
+
+所以 `characters` 就是官方说的 character anchor，`negative`/`preserve` 就是 constraints。
+透明底那段也是照它的要求写全的（`no scenery / no backdrop / no checkerboard / no background shadow`，
+少一项模型就会给你画出棋盘格或投影）。
+
+**来源**：[openai-cookbook · image-gen-models-prompting-guide](https://github.com/openai/openai-cookbook/blob/main/examples/multimodal/image-gen-models-prompting-guide.ipynb)、
+[awesome-gpt-image-2](https://github.com/YouMind-OpenLab/awesome-gpt-image-2)、
+[awesome-ai-image-generator-prompts](https://github.com/cliprise/awesome-ai-image-generator-prompts)
+
+> **纯加法**：项目里没配包时**一个字都不改**提示词（有测试钉住）。
+> 想临时不带包：`generate(..., prompt_pack=false)`。
+
+---
+
+## 尺寸守卫 · 别把白花的钱交给上游
+
+按官方 gpt-image-2 约束在**发请求前**校验 size，不合法的自动吸附到最近合法值：
+
+| 约束 | 值 |
+|---|---|
+| 最长边 | < 3840px |
+| 两边 | 必须是 **16 的整数倍** |
+| 长短边比 | ≤ 3:1 |
+| 总像素 | 655,360 ~ 8,294,400 |
+| 超过 2560×1440 | 官方标注**实验性**，会警告（但不拦） |
+
+**两个很多人不知道的点**：
+
+1. `1000x1000` 是**不合法**的（不是 16 的倍数）→ 自动吸附成 `1008x1008`。
+2. **`512x512` 做不到** —— 总像素 262,144 低于下限 655,360。最小可用方图是 **816×816**。
+   要小图标就出 1024×1024 再本地缩（用 `pixelize` / `fitToTarget`，本地缩放不花钱）。
+
+为什么值得单独做：尺寸不合法时上游要么 400（白等一次），要么**默默给你一张被裁过的图**（更糟，
+你以为出的是 2048²，其实不是，而且没人告诉你）。
+
+---
+
+## 生音频 · 角色配音 / 唱歌 / 作曲（桥接 VoiceStudio）
+
+你机器上已经有一套跑通的语音流水线（GPT-SoVITS 训练 + RVC + Seed-VC + YuE2 作曲），
+它在 `127.0.0.1:8756` 上提供了完整的 HTTP API。这里**不重写**，只做三件事：
+① 包成 AI 能直接调的工具 ② 把产出**拉进当前游戏项目目录**（和图片素材放一起）③ 失败时说清是"服务没起"还是"任务失败"。
+
+```jsonc
+audio(action="roles")                                    // 先看有哪些音色（实测有 26 个）
+audio(action="speak", role="阿塔尼斯",                     // ★ 角色配音
+      script="[愤怒] 你竟敢骗我！\n[低语] 别出声。")
+audio(action="song",  role="阿塔尼斯",                     // ★ 作曲 + 换声演唱
+      style="dark ambient orchestral, slow, female vocal, 72bpm",
+      lyrics="夜色沉沉，火光将尽…", duration=90, steps=32)
+audio(action="sing",  role="阿塔尼斯", song="D:\\曲\\demo.mp3")   // 翻唱现成歌
+audio(action="rvc",   role="阿塔尼斯", song="D:\\对白.wav")       // 换声
+audio(action="status", job_id="j2b0b8bab")               // 查进度（长任务用 wait_s=0 提交）
+```
+
+产出落在 `<输出目录>/<项目>/audio/`，文件名按 `name` 参数。
+
+**实测**（2026-10，真实 VoiceStudio）：`[平静] 这是一次接入验证。` → 建任务 → 48.2 秒完成 →
+识别出语气 `calm`、音色相似度 0.7734、2.28 秒音频复制进项目目录。
+
+**几个设计细节**：
+
+- **怎么拿到产出**：任务完成后成品不是从 `/api/job` 下的，而是被写进角色的 `outputs` 列表。
+  所以正确做法是「建任务前记下 outputs 数量 → 完成后读角色取新增」—— 这样并发也不会拿错文件。
+- **语气标签**：`[愤怒]` 这类中括号标签由 VoiceStudio 自己解析（官方支持的写法），
+  工具会把解析结果回报成 `tone_plan`，你能确认"这句话会被怎么念"。
+- **服务没起**：默认会自动尝试拉起（`autostart=true`，用它的 `_start_server.py`）；
+  拉不起来会明确告诉你"双击 `启动VoiceStudio.bat`"，而不是丢一个 ECONNREFUSED。
+- **代理坑**：本机若设了 `http_proxy`，请求 127.0.0.1 会被劫持成"接口明明在跑却连不通"
+  （VoiceStudio 作者踩过）。Node 的 fetch 默认不读代理变量，所以这里是安全的；但换 HTTP 客户端要注意。
+
+---
+
 ## 工具 · Tools
 
 | 工具 | 作用 |
@@ -1053,12 +1168,13 @@ quality(action="pixelize", file="…\\hero_1.png", logical_width=32)   // 默认
 | `_dsh_external_dsh_gpt_image_review` | 出图自检（揪废图） |
 | `_dsh_external_dsh_gpt_image_style` | 风格索引 / 档案 / 跑偏检测 |
 | `_dsh_external_dsh_gpt_image_order` | 生成顺序（先通用后具体） |
-| `_dsh_external_dsh_gpt_image_prompts` | 提示词库（复用成功、避开废词） |
 | `_dsh_external_dsh_gpt_image_heatmap` | 使用热度（哪些白花钱） |
 | `_dsh_external_dsh_gpt_image_screenshot` | 截图给用户看 |
 | `_dsh_external_dsh_gpt_image_job` | 异步任务查/等 |
 | `_dsh_external_dsh_gpt_image_video` | **生视频 + 导入图片生成视频**：`text` / `keyframe`（首尾帧）/ `reference`（参考图）；`first_frame` / `images` 直接给**本地路径**即可（自动换公网 URL）；配置档自动解析 |
 | `_dsh_external_dsh_gpt_image_quality` | 质量地基：spec 校验修复 / **`pixelize` 像素画净化** / 协调性 / 变体 / 图集 / 标签 / 评分路由 |
+| `_dsh_external_dsh_gpt_image_prompts` | 提示词库 + **项目提示词包**（`pack-show` / `pack-save` / `pack-template` / `pack-validate` / `pack-list`）—— 统一画风 |
+| `_dsh_external_dsh_gpt_image_audio` | **生音频**：角色配音 `speak`（支持 `[语气]` 标签）/ 作曲演唱 `song` / 翻唱 `sing` / 换声 `rvc`·`seedvc` / `status` |
 | `_dsh_external_dsh_gpt_image_config` | 配置 / 花费 / 校准 / 锁 / `set_upload`（素材上传方式） |
 
 示例（AI 自己就能这么调）：
@@ -1177,8 +1293,8 @@ dsh-gpt-image/
 │   ├── upload.js    ★ 本地文件 → 公网 URL（策略链：自建前缀 / 自配端点 / 免费图床）
 │   ├── multipart.js ★ 零依赖 multipart 解析（面板「导入图片」用）
 │   ├── store.js     配置档（Playground 配置互导）+ 出图历史
-│   ├── tools.js     27 个工具
-│   ├── server.js    面板 /gpt-image（32 个路由）
+│   ├── tools.js     28 个工具
+│   ├── server.js    面板 /gpt-image（33 个路由）
 │   └── util.js      HTTP / 路径安全 / 同源栅栏
 ├── tests/           557 个用例（25 个文件，`npm test` 走 glob 全量）
 ├── scripts/probe.mjs            真机 1 张探针

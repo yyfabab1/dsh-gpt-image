@@ -121,6 +121,7 @@ const T = {
   sheet: '_dsh_external_dsh_gpt_image_sheet',
   approval: '_dsh_external_dsh_gpt_image_approval',
   cross_style: '_dsh_external_dsh_gpt_image_cross_style',
+  audio: '_dsh_external_dsh_gpt_image_audio',
   config: '_dsh_external_dsh_gpt_image_config',
 }
 
@@ -275,7 +276,7 @@ test('免费与付费分开记账：免费只加张数、不加钱', async () =>
   }
 })
 
-test('注册 27 个工具（含素材审核/余额/视频/审批流/图标集/跨项目风格），schema 全部符合 dsh-tools 契约', async () => {
+test('注册 28 个工具（含素材审核/余额/视频/审批流/图标集/跨项目风格/音频），schema 全部符合 dsh-tools 契约', async () => {
   const h = await harness()
   try {
     assert.deepEqual([...h.ctx.registry.keys()].sort(), Object.values(T).sort())

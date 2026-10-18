@@ -1062,7 +1062,7 @@ test('L5 生成后自动后处理：不覆盖原图，且可关闭', async () =>
 
 // ══════ 端到端：真的注册插件并调工具（不读源码，而是执行）══════
 
-test('端到端：注册 27 个工具，且 auto.rules 能返回操作符与谓词（回归：曾漏 import）', async () => {
+test('端到端：注册 28 个工具，且 auto.rules 能返回操作符与谓词（回归：曾漏 import）', async () => {
   const { apply } = await import('../lib/index.js')
   const mkdtemp = (await import('node:fs/promises')).mkdtemp
   const os = await import('node:os')
@@ -1077,7 +1077,7 @@ test('端到端：注册 27 个工具，且 auto.rules 能返回操作符与谓�
   try {
     apply({ inject: (d, fn) => { try { fn(scope) } catch { /* 忽略 */ } }, effect: scope.effect, get: () => undefined, tools: scope.tools },
       { dataDir: dir, outputDir: dir })
-    assert.equal(registry.size, 27, `应注册 27 个工具，实际 ${registry.size}`)
+    assert.equal(registry.size, 28, `应注册 28 个工具，实际 ${registry.size}`)
     const auto = registry.get('_dsh_external_dsh_gpt_image_auto')
     assert.ok(auto, '缺少 auto 工具')
     // 回归：auto.rules 曾因 OPERATORS/PREDICATES 没 import 而报 "OPERATORS is not defined"
@@ -1099,14 +1099,23 @@ test('端到端：权限语义——外部脚本改不了结论，用户放行',
 })
 
 test('端到端：所有 action enum 都指向真实存在的分支（防止"声明了但没实现"）', async () => {
-  const { readFile } = await import('node:fs/promises')
+  const { readFile, readdir } = await import('node:fs/promises')
   const src = await readFile(new URL('../lib/tools.js', import.meta.url), 'utf8')
   // 只抓 **action 字段** 的 enum（不能抓 quality/size/format 那种值枚举）
   const declared = new Set()
   for (const m of src.matchAll(/action:\s*\{\s*type:\s*'string',\s*enum:\s*\[([^\]]+)\]/g)) {
     for (const x of m[1].matchAll(/'([a-z][\w-]*)'/g)) declared.add(x[1])
   }
-  const implemented = new Set([...src.matchAll(/action === '([a-z][\w-]*)'/g)].map((m) => m[1]))
+  /* 实现不一定在 tools.js 里 —— 比如 audio 的动作全在 lib/audio.js。
+   * 所以把 lib/ 下所有模块一起扫，否则会误报「声明了没实现」（实测踩过）。 */
+  const libDir = new URL('../lib/', import.meta.url)
+  const libFiles = (await readdir(libDir)).filter((name) => name.endsWith('.js'))
+  let allSource = ''
+  for (const name of libFiles) {
+    allSource += await readFile(new URL(`../lib/${name}`, import.meta.url), 'utf8')
+    allSource += '\n'
+  }
+  const implemented = new Set([...allSource.matchAll(/action === '([a-z][\w-]*)'/g)].map((m) => m[1]))
   // 有些 action 由其它分支处理（如 switch/else），显式白名单
   const handledElsewhere = new Set([
     'list', 'add', 'remove', 'clear', 'show', 'status', 'generate', 'edit', 'review',
