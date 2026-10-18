@@ -106,18 +106,15 @@ const T = {
   studio: '_dsh_external_dsh_gpt_image_studio',
   auto: '_dsh_external_dsh_gpt_image_auto',
   job: '_dsh_external_dsh_gpt_image_job',
-  scan: '_dsh_external_dsh_gpt_image_scan',
   pool: '_dsh_external_dsh_gpt_image_pool',
   batch: '_dsh_external_dsh_gpt_image_batch',
   install: '_dsh_external_dsh_gpt_image_install',
   screenshot: '_dsh_external_dsh_gpt_image_screenshot',
   style: '_dsh_external_dsh_gpt_image_style',
-  order: '_dsh_external_dsh_gpt_image_order',
   review: '_dsh_external_dsh_gpt_image_review',
   register: '_dsh_external_dsh_gpt_image_register',
   pipeline: '_dsh_external_dsh_gpt_image_pipeline',
   prompts: '_dsh_external_dsh_gpt_image_prompts',
-  heatmap: '_dsh_external_dsh_gpt_image_heatmap',
   sheet: '_dsh_external_dsh_gpt_image_sheet',
   approval: '_dsh_external_dsh_gpt_image_approval',
   cross_style: '_dsh_external_dsh_gpt_image_cross_style',
@@ -125,6 +122,7 @@ const T = {
   rig: '_dsh_external_dsh_gpt_image_rig',
   adapter: '_dsh_external_dsh_gpt_image_adapter',
   spritesheet: '_dsh_external_dsh_gpt_image_spritesheet',
+  audit: '_dsh_external_dsh_gpt_image_audit',
   config: '_dsh_external_dsh_gpt_image_config',
 }
 
@@ -279,7 +277,7 @@ test('免费与付费分开记账：免费只加张数、不加钱', async () =>
   }
 })
 
-test('注册 31 个工具（含素材审核/余额/视频/审批流/图标集/跨项目风格/音频/拆件/引擎适配/多帧动画），schema 全部符合 dsh-tools 契约', async () => {
+test('注册 29 个工具（含素材审核/余额/视频/审批流/图标集/跨项目风格/音频/拆件/引擎适配/多帧动画），schema 全部符合 dsh-tools 契约', async () => {
   const h = await harness()
   try {
     assert.deepEqual([...h.ctx.registry.keys()].sort(), Object.values(T).sort())

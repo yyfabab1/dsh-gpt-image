@@ -548,3 +548,25 @@ test('★ 相位偏移：phase 真的把起始角度平移了（八面图靠它�
     await rm(dir, { recursive: true, force: true })
   }
 })
+
+test('★ 视频限流冷却：429 之后短期**秒失败**，不再白等 20+ 秒', async () => {
+  const { videoRateLimitCooldown, __setVideoRateLimitForTest } = await import('../lib/video.js')
+  try {
+    // ① 默认不冷却
+    __setVideoRateLimitForTest(0)
+    assert.deepEqual(videoRateLimitCooldown(), { cooling: false, remainingSeconds: 0 })
+
+    // ② 置位后处于冷却
+    __setVideoRateLimitForTest(60 * 1000)
+    const cooling = videoRateLimitCooldown()
+    assert.equal(cooling.cooling, true)
+    assert.ok(cooling.remainingSeconds > 55 && cooling.remainingSeconds <= 60,
+      `剩余秒数应在 55~60，实际 ${cooling.remainingSeconds}`)
+
+    // ③ 清除后恢复
+    __setVideoRateLimitForTest(0)
+    assert.equal(videoRateLimitCooldown().cooling, false)
+  } finally {
+    __setVideoRateLimitForTest(0)
+  }
+})

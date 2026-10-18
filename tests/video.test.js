@@ -4,13 +4,19 @@
  */
 import assert from 'node:assert/strict'
 import http from 'node:http'
-import test from 'node:test'
+import test, { beforeEach } from 'node:test'
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { buildRequest, extractVideos, normalizeProvider } from '../lib/protocol.js'
-import { isVideoQueueFull, normalizeVideoParams, runVideo, validateVideoArgs } from '../lib/video.js'
+import { isVideoQueueFull, normalizeVideoParams, runVideo, validateVideoArgs, resetVideoRateLimit } from '../lib/video.js'
 import { rootOf } from '../lib/util.js'
+
+/* 限流冷却是模块级状态（按配置档隔离）：前一个用例模拟 429，不清理就会把后面用例也挡住。
+ * 测试之间必须隔离 —— 否则失败原因看起来像"功能坏了"，实际是状态漏到了下一个用例。 */
+beforeEach(() => {
+  resetVideoRateLimit()
+})
 
 const VIDEO_PROFILE = { id: 'v', provider: 'agnes-video', baseUrl: 'https://apihub.agnes-ai.com/v1', apiKey: 'sk-test', model: 'agnes-video-2.5-flash' }
 const providerDef = () => normalizeProvider({ id: 'agnes-video' })
